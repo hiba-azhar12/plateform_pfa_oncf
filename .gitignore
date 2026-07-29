@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+data/modele1_ventes/anomalies.csv
+data/modele1_ventes/predictions_test.csv
+data/modele3_controles/predictions_test.csv
+data/modele3_controles/anomalies.csv
