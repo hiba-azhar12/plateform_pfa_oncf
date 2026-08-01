@@ -136,20 +136,7 @@ journalise le résultat dans `data/log_execution.json`.
 streamlit run app.py
 ```
 
-## 9. Limite importante à connaître : NbCirculations et NbControles du jour prédit
-
-Dans les notebooks, `NbCirculations` (modèles 2 et 5) et `NbControles` (modèle 6) sont utilisés
-comme features du jour même, pas seulement en décalé — ce qui est cohérent puisque ce sont des
-quantités planifiées à l'avance (grille de circulation, planification des contrôles), donc déjà
-connues au moment de la prédiction.
-
-En l'absence d'un flux réel donnant cette planification à l'avance, le pipeline utilise ici la
-valeur observée la veille (`lag_1`) comme approximation de la valeur du jour prédit. C'est une
-approximation raisonnable tant que les grilles de circulation et de contrôle sont stables d'un
-jour à l'autre, mais elle doit être remplacée par la vraie donnée planifiée dès qu'elle est
-disponible, dans `utils/inference.py` (fonction `construire_features`, section `exogenes`).
-
-## 10. Calendrier marocain à maintenir chaque année
+## 9. Calendrier marocain à maintenir chaque année
 
 `config/calendrier_maroc.py` contient les périodes de Ramadan et de vacances scolaires. La
 liste des vacances scolaires est vide dans les notebooks fournis (la feature `EstVacances` était
@@ -157,7 +144,7 @@ donc constante pendant l'entraînement) ; à compléter avec le calendrier scola
 cette feature doit devenir utile pour les nouvelles prédictions. Les dates de Ramadan doivent
 être ajoutées chaque année, ce calendrier étant lunaire.
 
-## 11. Limitations connues
+## 10. Limitations connues
 
 - Aucune coordonnée GPS n'est exportée par les notebooks : la carte des lignes ONCF n'est
   pas incluse.
