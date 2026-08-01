@@ -1,0 +1,4 @@
+{
+  "SeuilAnomalie": 0.19232871047372424,
+  "Methode": "moyenne_plus_2_ecarts_types_lignes_actives"
+}

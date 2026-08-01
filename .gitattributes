@@ -1,4 +1,4 @@
-data/modele1_ventes/anomalies.csv filter=lfs diff=lfs merge=lfs -text
-data/modele1_ventes/predictions_test.csv filter=lfs diff=lfs merge=lfs -text
-data/modele3_controles/anomalies.csv filter=lfs diff=lfs merge=lfs -text
-data/modele3_controles/predictions_test.csv filter=lfs diff=lfs merge=lfs -text
+data/**/*.csv filter=lfs diff=lfs merge=lfs -text
+data/**/*.pkl filter=lfs diff=lfs merge=lfs -text
+data/**/*.joblib filter=lfs diff=lfs merge=lfs -text
+data/**/*.h5 filter=lfs diff=lfs merge=lfs -text

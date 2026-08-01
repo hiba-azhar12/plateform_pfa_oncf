@@ -1,9 +1,0 @@
-{
-  "Cible": "PartConfort",
-  "Modele": "MODELE 4 PART CONFORT - LIGHTGBM PAR CATEGORIE",
-  "RMSE": 0.0860684685485518,
-  "MAE": 0.03566034687859332,
-  "LogLossComposition": 0.0287,
-  "NbLignesTest": 189964,
-  "NbLignesActives": 49848
-}

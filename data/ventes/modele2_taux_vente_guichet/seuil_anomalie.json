@@ -1,0 +1,5 @@
+{
+  "Cible": "TauxVenteGuichet",
+  "SeuilAnomalie": 0.1377235246086606,
+  "Methode": "moyenne + 2 ecarts-types"
+}

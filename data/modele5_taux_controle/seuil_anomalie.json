@@ -1,5 +1,0 @@
-{
-  "Cible": "TauxControle",
-  "SeuilAnomalie": 0.14489822082676132,
-  "Methode": "moyenne + 2 ecarts-types"
-}

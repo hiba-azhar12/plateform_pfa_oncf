@@ -1,0 +1,7 @@
+{
+  "Cible": "NbBillets",
+  "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE",
+  "RMSE": 5.993973531502185,
+  "MAE": 0.9591344043284944,
+  "NbLignesTest": 2092984
+}
