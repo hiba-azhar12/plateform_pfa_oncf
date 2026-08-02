@@ -133,6 +133,7 @@ journalise le résultat dans `data/log_execution.json`.
 ## 8. Lancer l'application
 
 ```
+source .venv/bin/activate
 streamlit run app.py
 ```
 

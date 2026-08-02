@@ -25,7 +25,7 @@ def appliquer_style():
 
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
-        header {{visibility: hidden;}}
+        
 
         .stApp {{
             background-color: {PALETTE["bg"]};
