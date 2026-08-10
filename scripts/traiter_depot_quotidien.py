@@ -239,17 +239,26 @@ def traiter_date(date_texte):
     date_suivante = date_courante + timedelta(days=1)
 
     colonnes_manquantes_totales = {}
+    liaisons_inconnues_totales = {}
+    erreurs_modeles = {}
 
     for cle_modele in MODELES:
-        historique = pd.read_parquet(_chemin_historique(cle_modele))
+        try:
+            historique = pd.read_parquet(_chemin_historique(cle_modele))
 
-        existantes = _reconcilier(cle_modele, date_texte, lots_agreges[cle_modele])
+            existantes = _reconcilier(cle_modele, date_texte, lots_agreges[cle_modele])
 
-        nouvelle_prediction, colonnes_manquantes = predire_nouvelle_date(cle_modele, date_suivante, historique)
-        if colonnes_manquantes:
-            colonnes_manquantes_totales[cle_modele] = colonnes_manquantes
+            nouvelle_prediction, colonnes_manquantes, liaisons_inconnues = predire_nouvelle_date(
+                cle_modele, date_suivante, historique
+            )
+            if colonnes_manquantes:
+                colonnes_manquantes_totales[cle_modele] = colonnes_manquantes
+            if liaisons_inconnues:
+                liaisons_inconnues_totales[cle_modele] = liaisons_inconnues
 
-        _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction)
+            _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction)
+        except Exception as exception:
+            erreurs_modeles[cle_modele] = str(exception)
 
     _archiver_fichiers(chemins)
 
@@ -257,6 +266,8 @@ def traiter_date(date_texte):
         "date_traitee": date_texte,
         "date_predite": date_suivante.strftime("%Y-%m-%d"),
         "colonnes_manquantes": colonnes_manquantes_totales,
+        "liaisons_inconnues": liaisons_inconnues_totales,
+        "erreurs_modeles": erreurs_modeles,
     }
 
 
@@ -283,11 +294,13 @@ def executer():
         resultat = traiter_date(date_a_traiter)
         _ecrire_log({
             "horodatage": horodatage,
-            "statut": "succes",
+            "statut": "succes" if not resultat["erreurs_modeles"] else "succes_partiel",
             "fichiers_traites": 3,
             "date_traitee": resultat["date_traitee"],
             "date_predite": resultat["date_predite"],
             "colonnes_manquantes": resultat["colonnes_manquantes"],
+            "liaisons_inconnues": resultat["liaisons_inconnues"],
+            "erreurs_modeles": resultat["erreurs_modeles"],
         })
 
     except Exception as exception:

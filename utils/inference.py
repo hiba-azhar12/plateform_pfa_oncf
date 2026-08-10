@@ -72,8 +72,9 @@ def generer_lignes_a_predire(cle_modele, date_cible, historique):
 def preparer_liaison_id(table, cle_modele, encodage):
     info = MODELES[cle_modele]
     if info["format_modele"] == "catboost":
+        table = table.copy()
         table["LiaisonId"] = table["LiaisonId"].astype(str)
-        return table
+        return table, []
 
     if encodage.empty or "LiaisonId" not in encodage.columns:
         codes_factorises, _ = pd.factorize(table["LiaisonId"].astype(str))
@@ -82,11 +83,17 @@ def preparer_liaison_id(table, cle_modele, encodage):
         mapping = dict(zip(encodage["LiaisonId"].astype(str), encodage["Code"]))
         codes = table["LiaisonId"].astype(str).map(mapping).astype("Int32")
 
+    masque_connu = codes.notna()
+    liaisons_inconnues = sorted(table.loc[~masque_connu, "LiaisonId"].astype(str).unique().tolist())
+
+    table = table.loc[masque_connu].copy()
+    codes = codes.loc[masque_connu]
+
     if info["multi_categorie"]:
         table["LiaisonId_code"] = codes.astype("int32")
     else:
         table["LiaisonId"] = codes.astype("int32")
-    return table
+    return table, liaisons_inconnues
 
 
 def construire_features(cle_modele, date_cible, historique):
@@ -144,14 +151,14 @@ def construire_features(cle_modele, date_cible, historique):
     table[colonnes_calendaires_a_ajouter] = calendaires[colonnes_calendaires_a_ajouter].reset_index(drop=True)
 
     encodage = charger_encodage(cle_modele)
-    table = preparer_liaison_id(table, cle_modele, encodage)
+    table, liaisons_inconnues = preparer_liaison_id(table, cle_modele, encodage)
 
     colonnes_attendues = charger_colonnes_features(cle_modele)
     colonnes_manquantes = [colonne for colonne in colonnes_attendues if colonne not in table.columns]
     for colonne in colonnes_manquantes:
         table[colonne] = np.nan
 
-    return table, colonnes_attendues, colonnes_manquantes
+    return table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues
 
 
 def charger_modele_simple(cle_modele):
@@ -212,7 +219,7 @@ def predire(cle_modele, table_features, colonnes_attendues):
 
 
 def predire_nouvelle_date(cle_modele, date_cible, historique):
-    table, colonnes_attendues, colonnes_manquantes = construire_features(cle_modele, date_cible, historique)
+    table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues = construire_features(cle_modele, date_cible, historique)
     resultat = predire(cle_modele, table, colonnes_attendues)
     resultat["DateCalculPrediction"] = pd.Timestamp.now().normalize()
-    return resultat, colonnes_manquantes
+    return resultat, colonnes_manquantes, liaisons_inconnues
