@@ -147,8 +147,7 @@ cette feature doit devenir utile pour les nouvelles prédictions. Les dates de R
 
 ## 10. Limitations connues
 
-- Aucune coordonnée GPS n'est exportée par les notebooks : la carte des lignes ONCF n'est
-  pas incluse.
+- Aucune coordonnée GPS n'est exportée par les notebooks : la carte des lignes ONCF n'est pas incluse.
 - `liaison_frequence` est calculé ici comme le nombre total d'observations historiques pour la
   liaison, sans distinction d'heure ni de catégorie, par souci de simplicité. Si les notebooks
   de modélisation utilisent un regroupement plus fin, ajuster `calculer_liaison_frequence`

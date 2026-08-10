@@ -17,7 +17,7 @@ RAPPORTS = os.path.join(DONNEES, "rapports")
 
 LOG_EXECUTION = os.path.join(DONNEES, "log_execution.json")
 
-LIEN_DOSSIER_DRIVE = ""
+LIEN_DOSSIER_DRIVE = "https://drive.google.com/drive/folders/1jhmXA-QxR1jVAacKfQWitnHuup6NFEFj?usp=sharing"
 
 COLONNES_VENTEPDA = [
     "NumBillet", "Date", "Heure", "Montant", "NbreVoyageurs",
