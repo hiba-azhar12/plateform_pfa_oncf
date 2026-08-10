@@ -126,8 +126,9 @@ def construire_modele4(pivot_vente):
 
 
 def construire_modele5(pivot_controle, pivot_circ):
-    controle_heure = pivot_controle.groupby(["Date", "Heure", "LiaisonId"], observed=True)["NbControles"].sum().reset_index()
-    fusion = controle_heure.merge(pivot_circ, on=["Date", "Heure", "LiaisonId"], how="left")
+    controle_jour = pivot_controle.groupby(["Date", "LiaisonId"], observed=True)["NbControles"].sum().reset_index()
+    circulation_jour = pivot_circ.groupby(["Date", "LiaisonId"], observed=True)["NbCirculations"].sum().reset_index()
+    fusion = controle_jour.merge(circulation_jour, on=["Date", "LiaisonId"], how="left")
     fusion = fusion[fusion["NbCirculations"].notna()].reset_index(drop=True)
     fusion["TauxControle"] = (fusion["NbControles"] / fusion["NbCirculations"]).clip(upper=1.0)
     return fusion
@@ -135,7 +136,7 @@ def construire_modele5(pivot_controle, pivot_circ):
 
 def construire_modele6(pivot_controle):
     agrege = (
-        pivot_controle.groupby(["Date", "Heure", "LiaisonId"], observed=True)
+        pivot_controle.groupby(["Date", "LiaisonId"], observed=True)
         .agg(NbControles=("NbControles", "sum"), NbFraudes=("NbFraudes", "sum"))
         .reset_index()
     )

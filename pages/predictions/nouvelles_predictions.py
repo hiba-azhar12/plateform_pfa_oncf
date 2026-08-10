@@ -85,21 +85,26 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
                 st.metric("Dernière erreur absolue", "en attente")
 
         figure = go.Figure()
-        figure.add_trace(go.Scatter(
-            x=sous_ensemble["Date"], y=sous_ensemble["Prediction"],
-            mode="lines+markers", name="Prédiction", line=dict(color=PALETTE["red"], dash="dash"),
-        ))
         if "Reel" in sous_ensemble.columns:
             reel = sous_ensemble.dropna(subset=["Reel"])
             figure.add_trace(go.Scatter(
                 x=reel["Date"], y=reel["Reel"],
-                mode="lines+markers", name="Réel", line=dict(color=PALETTE["navy"]),
+                mode="lines+markers", name="Réel", line=dict(color=PALETTE["navy"], width=2.5), marker=dict(size=5),
             ))
+        figure.add_trace(go.Scatter(
+            x=sous_ensemble["Date"], y=sous_ensemble["Prediction"],
+            mode="lines+markers", name="Prédiction", line=dict(color=PALETTE["red"], width=2.5), marker=dict(size=5),
+        ))
         figure.update_layout(
-            height=400, margin=dict(l=10, r=10, t=30, b=10),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            template="plotly_white",
+            font=dict(family="Segoe UI, Helvetica Neue, Arial, sans-serif", color=PALETTE["text"], size=13),
+            height=400, margin=dict(l=10, r=10, t=24, b=10),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             plot_bgcolor=PALETTE["surface"], paper_bgcolor=PALETTE["surface"],
+            hovermode="x unified",
         )
+        figure.update_xaxes(showgrid=False, showline=True, linecolor=PALETTE["border"], title_text="Date")
+        figure.update_yaxes(showgrid=True, gridcolor=PALETTE["border"], title_text=info["libelle_court"])
         st.plotly_chart(figure, use_container_width=True)
 
         with st.expander("Table détaillée"):

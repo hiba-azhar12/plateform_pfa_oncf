@@ -90,7 +90,7 @@ MODELES = {
     "modele5_taux_controle": {
         "domaine": "controles",
         "famille": "taux",
-        "granularite": "horaire",
+        "granularite": "journaliere",
         "cible": "TauxControle",
         "cible_denominateur": "NbCirculations",
         "libelle": "Taux de billets contrôlés",
@@ -105,7 +105,7 @@ MODELES = {
     "modele6_taux_fraude": {
         "domaine": "controles",
         "famille": "taux",
-        "granularite": "horaire",
+        "granularite": "journaliere",
         "cible": "TauxFraude",
         "cible_denominateur": "NbControles",
         "libelle": "Taux de fraude",

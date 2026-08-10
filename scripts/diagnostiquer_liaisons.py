@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 
 from config.modeles import MODELES, chemin_fichier
@@ -16,3 +21,4 @@ for cle_modele in MODELES:
 
     if inconnues:
         print(cle_modele, "->", sorted(inconnues))
+        

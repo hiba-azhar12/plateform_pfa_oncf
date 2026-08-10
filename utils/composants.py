@@ -28,6 +28,27 @@ LIBELLES_METRIQUES = {
     "NbLignesTest": "Lignes de test",
 }
 
+JOURS_SEMAINE = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+MOIS_ABREGES = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
+SEQUENCE_ANNEES = [PALETTE["steel"], PALETTE["navy"], PALETTE["red"], PALETTE["amber"], PALETTE["green"]]
+
+
+def _mise_en_forme(figure, titre=None, hauteur=380, hovermode="x unified", afficher_legende=True):
+    figure.update_layout(
+        template="plotly_white",
+        font=dict(family="Segoe UI, Helvetica Neue, Arial, sans-serif", color=PALETTE["text"], size=13),
+        title=dict(text=titre, x=0.01, xanchor="left", font=dict(size=16, color=PALETTE["navy"])) if titre else None,
+        height=hauteur,
+        margin=dict(l=10, r=10, t=54 if titre else 24, b=10),
+        plot_bgcolor=PALETTE["surface"],
+        paper_bgcolor=PALETTE["surface"],
+        hovermode=hovermode,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None) if afficher_legende else dict(visible=False),
+    )
+    figure.update_xaxes(showgrid=False, showline=True, linecolor=PALETTE["border"], zeroline=False)
+    figure.update_yaxes(showgrid=True, gridcolor=PALETTE["border"], zeroline=False)
+    return figure
+
 
 def _message_donnees_absentes(cle_modele):
     st.info(
@@ -69,23 +90,26 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         _message_donnees_absentes(cle_modele)
         return
 
+    st.markdown("**Qualité du modèle (jeu de test)**")
     afficher_cartes_metriques(cle_modele, mettre_en_avant=mettre_en_avant_fraude)
+    st.markdown("<div style='height: 8px'></div>", unsafe_allow_html=True)
 
     predictions = predictions.copy()
     predictions["Date"] = pd.to_datetime(predictions["Date"])
-
     colonne_categorie = info["colonne_categorie"]
 
-    liaisons = sorted(predictions["LiaisonId"].astype(str).unique().tolist())
-    colonne_gauche, colonne_droite = st.columns([2, 1])
-    with colonne_gauche:
-        liaison_choisie = st.selectbox("Liaison", liaisons, key=f"liaison_{cle_modele}")
-    with colonne_droite:
-        if colonne_categorie:
-            categories = sorted(predictions[colonne_categorie].astype(str).unique().tolist())
-            categorie_choisie = st.selectbox(colonne_categorie, categories, key=f"categorie_{cle_modele}")
-        else:
-            categorie_choisie = None
+    with st.container(border=True):
+        st.markdown("**Sélection**")
+        colonne_gauche, colonne_droite = st.columns([2, 1])
+        with colonne_gauche:
+            liaisons = sorted(predictions["LiaisonId"].astype(str).unique().tolist())
+            liaison_choisie = st.selectbox("Liaison", liaisons, key=f"liaison_{cle_modele}")
+        with colonne_droite:
+            if colonne_categorie:
+                categories = sorted(predictions[colonne_categorie].astype(str).unique().tolist())
+                categorie_choisie = st.selectbox(colonne_categorie, categories, key=f"categorie_{cle_modele}")
+            else:
+                categorie_choisie = None
 
     filtre = predictions["LiaisonId"].astype(str) == liaison_choisie
     if colonne_categorie:
@@ -103,24 +127,53 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         sous_ensemble["Axe"] = sous_ensemble["Date"]
 
     sous_ensemble = sous_ensemble.sort_values("Axe")
+    sous_ensemble["Ecart"] = sous_ensemble["Prediction"] - sous_ensemble[info["cible"]]
+
+    derniere_reelle = sous_ensemble.dropna(subset=[info["cible"]])
+
+    st.markdown("**État courant**")
+    colonne_un, colonne_deux, colonne_trois = st.columns(3)
+    with colonne_un:
+        valeur = f"{derniere_reelle.iloc[-1][info['cible']]:.1f}" if not derniere_reelle.empty else "en attente"
+        st.metric("Dernier réel", valeur)
+    with colonne_deux:
+        st.metric("Dernière prédiction", f"{sous_ensemble.iloc[-1]['Prediction']:.1f}")
+    with colonne_trois:
+        valeur = f"{derniere_reelle.iloc[-1]['Ecart']:+.1f}" if not derniere_reelle.empty else "—"
+        st.metric("Écart", valeur)
 
     figure = go.Figure()
     figure.add_trace(go.Scatter(
         x=sous_ensemble["Axe"], y=sous_ensemble[info["cible"]],
-        mode="lines", name="Réel", line=dict(color=PALETTE["navy"]),
+        mode="lines", name="Réel", line=dict(color=PALETTE["navy"], width=2.5),
     ))
     figure.add_trace(go.Scatter(
         x=sous_ensemble["Axe"], y=sous_ensemble["Prediction"],
-        mode="lines", name="Prédiction", line=dict(color=PALETTE["red"], dash="dash"),
+        mode="lines", name="Prédiction", line=dict(color=PALETTE["red"], width=2.5),
+        fill="tonexty", fillcolor="rgba(200,16,46,0.10)",
     ))
-    figure.update_layout(
-        height=420,
-        margin=dict(l=10, r=10, t=30, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        plot_bgcolor=PALETTE["surface"],
-        paper_bgcolor=PALETTE["surface"],
-    )
+    _mise_en_forme(figure, titre=f"{info['libelle']} — Liaison {liaison_choisie}", hauteur=420)
+    figure.update_xaxes(title_text="Date")
+    figure.update_yaxes(title_text=info["libelle_court"])
     st.plotly_chart(figure, use_container_width=True)
+
+    colonne_gauche, colonne_droite = st.columns(2)
+    with colonne_gauche:
+        figure_ecart = px.bar(sous_ensemble.dropna(subset=["Ecart"]), x="Axe", y="Ecart", color_discrete_sequence=[PALETTE["steel"]])
+        figure_ecart.update_traces(marker_line_width=0)
+        _mise_en_forme(figure_ecart, titre="Écart dans le temps (prédiction − réel)", hauteur=280, hovermode="closest", afficher_legende=False)
+        figure_ecart.update_xaxes(title_text="")
+        figure_ecart.update_yaxes(title_text="")
+        st.plotly_chart(figure_ecart, use_container_width=True)
+    with colonne_droite:
+        figure_distribution = px.histogram(
+            sous_ensemble.dropna(subset=["Ecart"]), x="Ecart", nbins=30, color_discrete_sequence=[PALETTE["amber"]],
+        )
+        figure_distribution.update_traces(marker_line_width=0)
+        _mise_en_forme(figure_distribution, titre="Distribution des écarts", hauteur=280, hovermode="closest", afficher_legende=False)
+        figure_distribution.update_xaxes(title_text="Écart")
+        figure_distribution.update_yaxes(title_text="Fréquence")
+        st.plotly_chart(figure_distribution, use_container_width=True)
 
     saisonnalite = charger_saisonnalite(cle_modele)
     if not saisonnalite.empty:
@@ -131,7 +184,10 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
                     colonne_serie, x="Date", y=["Tendance", "Saisonnalite"],
                     color_discrete_sequence=[PALETTE["navy"], PALETTE["steel"]],
                 )
-                figure_saison.update_layout(height=320, margin=dict(l=10, r=10, t=10, b=10))
+                figure_saison.update_traces(line=dict(width=2.5))
+                _mise_en_forme(figure_saison, titre="Tendance et saisonnalité", hauteur=320)
+                figure_saison.update_xaxes(title_text="Date")
+                figure_saison.update_yaxes(title_text="")
                 st.plotly_chart(figure_saison, use_container_width=True)
 
 
@@ -205,25 +261,34 @@ def afficher_explicabilite_modele(cle_modele):
     colonne_gauche, colonne_droite = st.columns(2)
 
     with colonne_gauche:
-        st.markdown("**Importance des variables**")
         if not importance_features.empty:
             agregee = importance_features.groupby("Feature")["Importance"].mean().sort_values(ascending=False).head(15).reset_index()
-            figure = px.bar(agregee, x="Importance", y="Feature", orientation="h", color_discrete_sequence=[PALETTE["navy"]])
-            figure.update_layout(height=460, margin=dict(l=10, r=10, t=10, b=10), yaxis=dict(categoryorder="total ascending"))
+            figure = px.bar(
+                agregee, x="Importance", y="Feature", orientation="h",
+                color_discrete_sequence=[PALETTE["navy"]], text="Importance",
+            )
+            figure.update_traces(texttemplate="%{text:.3f}", textposition="outside", marker_line_width=0)
+            _mise_en_forme(figure, titre="Importance des variables", hauteur=460, hovermode="closest", afficher_legende=False)
+            figure.update_yaxes(categoryorder="total ascending", title_text="")
+            figure.update_xaxes(title_text="Importance moyenne")
             st.plotly_chart(figure, use_container_width=True)
 
     with colonne_droite:
-        st.markdown("**Importance SHAP**")
         if not importance_shap.empty:
             colonne_valeur = "ImportanceSHAP" if "ImportanceSHAP" in importance_shap.columns else importance_shap.columns[-1]
             agregee = importance_shap.groupby("Feature")[colonne_valeur].mean().sort_values(ascending=False).head(15).reset_index()
-            figure = px.bar(agregee, x=colonne_valeur, y="Feature", orientation="h", color_discrete_sequence=[PALETTE["red"]])
-            figure.update_layout(height=460, margin=dict(l=10, r=10, t=10, b=10), yaxis=dict(categoryorder="total ascending"))
+            figure = px.bar(
+                agregee, x=colonne_valeur, y="Feature", orientation="h",
+                color_discrete_sequence=[PALETTE["red"]], text=colonne_valeur,
+            )
+            figure.update_traces(texttemplate="%{text:.3f}", textposition="outside", marker_line_width=0)
+            _mise_en_forme(figure, titre="Importance SHAP", hauteur=460, hovermode="closest", afficher_legende=False)
+            figure.update_yaxes(categoryorder="total ascending", title_text="")
+            figure.update_xaxes(title_text="Importance SHAP moyenne")
             st.plotly_chart(figure, use_container_width=True)
 
     predictions = charger_predictions(cle_modele)
     if not predictions.empty and "ErreurAbsolue" in predictions.columns:
-        st.markdown("**Analyse des erreurs**")
         predictions = predictions.copy()
         predictions["Date"] = pd.to_datetime(predictions["Date"])
         predictions["JourSemaine"] = predictions["Date"].dt.dayofweek
@@ -231,8 +296,15 @@ def afficher_explicabilite_modele(cle_modele):
         colonne_gauche, colonne_droite = st.columns(2)
         with colonne_gauche:
             erreur_jour = predictions.groupby("JourSemaine")["ErreurAbsolue"].mean().reset_index()
-            figure = px.bar(erreur_jour, x="JourSemaine", y="ErreurAbsolue", color_discrete_sequence=[PALETTE["steel"]])
-            figure.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10))
+            erreur_jour["Jour"] = erreur_jour["JourSemaine"].apply(lambda indice: JOURS_SEMAINE[int(indice)])
+            figure = px.bar(
+                erreur_jour, x="Jour", y="ErreurAbsolue", color_discrete_sequence=[PALETTE["steel"]],
+                category_orders={"Jour": JOURS_SEMAINE}, text="ErreurAbsolue",
+            )
+            figure.update_traces(texttemplate="%{text:.2f}", textposition="outside", marker_line_width=0)
+            _mise_en_forme(figure, titre="Erreur moyenne par jour de semaine", hauteur=360, hovermode="closest", afficher_legende=False)
+            figure.update_xaxes(title_text="")
+            figure.update_yaxes(title_text="Erreur absolue moyenne")
             st.plotly_chart(figure, use_container_width=True)
         with colonne_droite:
             erreur_liaison = (
@@ -240,8 +312,16 @@ def afficher_explicabilite_modele(cle_modele):
                 .sort_values(ascending=False).head(15).reset_index()
             )
             erreur_liaison["LiaisonId"] = erreur_liaison["LiaisonId"].astype(str)
-            figure = px.bar(erreur_liaison, x="ErreurAbsolue", y="LiaisonId", orientation="h", color_discrete_sequence=[PALETTE["amber"]])
-            figure.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10), yaxis=dict(categoryorder="total ascending"))
+            figure = px.bar(
+                erreur_liaison, x="ErreurAbsolue", y="LiaisonId", orientation="h",
+                color="ErreurAbsolue", color_continuous_scale=[PALETTE["amber"], PALETTE["red"]],
+                text="ErreurAbsolue",
+            )
+            figure.update_traces(texttemplate="%{text:.2f}", textposition="outside", marker_line_width=0)
+            figure.update_coloraxes(showscale=False)
+            _mise_en_forme(figure, titre="Top 15 liaisons par erreur moyenne", hauteur=360, hovermode="closest", afficher_legende=False)
+            figure.update_yaxes(categoryorder="total ascending", title_text="Liaison")
+            figure.update_xaxes(title_text="Erreur absolue moyenne")
             st.plotly_chart(figure, use_container_width=True)
 
 
@@ -252,16 +332,27 @@ def afficher_comparaison_inter_annees(cle_modele):
         _message_donnees_absentes(cle_modele)
         return
 
-    st.markdown(f"**{info['libelle']}**")
     colonne_valeur = info["cible"]
     if colonne_valeur not in comparaison.columns:
         colonne_valeur = comparaison.columns[-1]
 
+    comparaison = comparaison.copy()
+    comparaison["Annee"] = comparaison["Annee"].astype(int).astype(str)
+    comparaison["MoisLabel"] = comparaison["Mois"].astype(int).apply(lambda mois: MOIS_ABREGES[mois - 1])
+
+    annees_triees = sorted(comparaison["Annee"].unique())
+    couleurs_annees = {annee: SEQUENCE_ANNEES[indice % len(SEQUENCE_ANNEES)] for indice, annee in enumerate(annees_triees)}
+
     figure = px.bar(
-        comparaison, x="Mois", y=colonne_valeur, color="Annee", barmode="group",
-        color_discrete_sequence=[PALETTE["navy"], PALETTE["steel"], PALETTE["red"], PALETTE["amber"]],
+        comparaison, x="MoisLabel", y=colonne_valeur, color="Annee", barmode="group",
+        category_orders={"MoisLabel": MOIS_ABREGES, "Annee": annees_triees},
+        color_discrete_map=couleurs_annees,
     )
-    figure.update_layout(height=380, margin=dict(l=10, r=10, t=10, b=10))
+    figure.update_traces(marker_line_width=0)
+    _mise_en_forme(figure, titre=info["libelle"], hauteur=400)
+    figure.update_layout(legend_title_text="Année")
+    figure.update_xaxes(title_text="")
+    figure.update_yaxes(title_text=info["libelle_court"])
     st.plotly_chart(figure, use_container_width=True)
 
 
@@ -273,9 +364,21 @@ def afficher_calendrier_quotidien(cle_modele):
 
     calendrier = calendrier.copy()
     calendrier["Date"] = pd.to_datetime(calendrier["Date"])
+    calendrier["Semaine"] = calendrier["Date"].dt.strftime("Sem. %V")
+    calendrier["JourSemaine"] = calendrier["Date"].dt.dayofweek
+
+    ordre_semaines = calendrier.sort_values("Date")["Semaine"].unique().tolist()
+
     figure = px.density_heatmap(
-        calendrier, x=calendrier["Date"].dt.isocalendar().week, y=calendrier["Date"].dt.dayofweek,
-        z="Ecart", color_continuous_scale=["#1E7145", "#F4F6F9", PALETTE["red"]],
+        calendrier, x="Semaine", y="JourSemaine", z="Ecart",
+        category_orders={"Semaine": ordre_semaines},
+        color_continuous_scale=[PALETTE["steel"], PALETTE["surface"], PALETTE["red"]],
+        color_continuous_midpoint=0,
     )
-    figure.update_layout(height=320, margin=dict(l=10, r=10, t=10, b=10))
+    _mise_en_forme(figure, titre="Calendrier quotidien des écarts (Prédiction − Réel)", hauteur=320, hovermode="closest", afficher_legende=False)
+    figure.update_yaxes(
+        title_text="", tickmode="array", tickvals=list(range(7)), ticktext=JOURS_SEMAINE, autorange="reversed",
+    )
+    figure.update_xaxes(title_text="")
+    figure.update_layout(coloraxis_colorbar=dict(title="Écart"))
     st.plotly_chart(figure, use_container_width=True)

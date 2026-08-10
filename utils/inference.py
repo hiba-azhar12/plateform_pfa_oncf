@@ -119,9 +119,13 @@ def construire_features(cle_modele, date_cible, historique):
     historique_etendu = historique_etendu.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True)
     historique_etendu["JourSemaine"] = pd.to_datetime(historique_etendu["Date"]).dt.dayofweek
 
-    for _, colonne_valeur in toutes_cibles:
-        historique_etendu = calculer_lags(historique_etendu, colonne_valeur, groupe_liaison, LAGS)
-        historique_etendu = calculer_rolling(historique_etendu, colonne_valeur, groupe_liaison, FENETRES_ROLLING)
+    for nom_suffixe, colonne_valeur in toutes_cibles:
+        historique_etendu = calculer_lags(
+            historique_etendu, colonne_valeur, groupe_liaison, LAGS, nom_suffixe=nom_suffixe
+        )
+        historique_etendu = calculer_rolling(
+            historique_etendu, colonne_valeur, groupe_liaison, FENETRES_ROLLING, nom_suffixe=nom_suffixe
+        )
 
     for nom_suffixe, colonne_valeur in traitement["completes"]:
         historique_etendu[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(
@@ -138,9 +142,20 @@ def construire_features(cle_modele, date_cible, historique):
         table["Heure"] = table["Heure"].astype(int)
 
     for nom_suffixe, colonne_valeur in traitement["exogenes"]:
-        valeur_proxy = table[f"lag_1_{colonne_valeur}"]
+        valeur_proxy = table[f"lag_1_{nom_suffixe}"]
         table[colonne_valeur] = valeur_proxy
         table[f"log_offset_{nom_suffixe}"] = np.log1p(valeur_proxy.clip(lower=0))
+
+    denominateur = info.get("cible_denominateur")
+    if denominateur is not None:
+        suffixe_denominateur = next(
+            (suffixe for suffixe, colonne in traitement["completes"] if colonne == denominateur),
+            None,
+        )
+        if suffixe_denominateur is not None:
+            valeur_proxy = table[f"lag_1_{suffixe_denominateur}"]
+            table[denominateur] = valeur_proxy
+            table[f"log_offset_{suffixe_denominateur}"] = np.log1p(valeur_proxy.clip(lower=0))
 
     avec_heure = "Heure" in table.columns
     calendaires = calculer_features_calendaires(
