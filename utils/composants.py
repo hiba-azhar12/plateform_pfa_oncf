@@ -14,6 +14,7 @@ from utils.chargement import (
     charger_predictions,
     charger_saisonnalite,
     charger_seuil_anomalie,
+    liste_liaisons,
     modele_dispose_de_donnees,
 )
 from utils.style import PALETTE
@@ -98,22 +99,38 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
     predictions["Date"] = pd.to_datetime(predictions["Date"])
     colonne_categorie = info["colonne_categorie"]
 
+    granularite_horaire = info["granularite"] == "horaire" and "Heure" in predictions.columns
+
     with st.container(border=True):
         st.markdown("**Sélection**")
-        colonne_gauche, colonne_droite = st.columns([2, 1])
-        with colonne_gauche:
-            liaisons = sorted(predictions["LiaisonId"].astype(str).unique().tolist())
-            liaison_choisie = st.selectbox("Liaison", liaisons, key=f"liaison_{cle_modele}")
-        with colonne_droite:
+        colonnes_filtre = st.columns([2, 1, 1]) if granularite_horaire else st.columns([2, 1])
+        with colonnes_filtre[0]:
+            liaisons = liste_liaisons(cle_modele)
+            if not liaisons:
+                liaisons = sorted(predictions["LiaisonId"].astype(str).unique().tolist())
+            liaisons_avec_donnees = set(predictions["LiaisonId"].astype(str).unique().tolist())
+            liaison_choisie = st.selectbox(
+                "Liaison", liaisons, key=f"liaison_{cle_modele}",
+                format_func=lambda liaison: liaison if liaison in liaisons_avec_donnees else f"{liaison} (pas de données sur la fenêtre de test)",
+            )
+        with colonnes_filtre[1]:
             if colonne_categorie:
                 categories = sorted(predictions[colonne_categorie].astype(str).unique().tolist())
                 categorie_choisie = st.selectbox(colonne_categorie, categories, key=f"categorie_{cle_modele}")
             else:
                 categorie_choisie = None
+        if granularite_horaire:
+            with colonnes_filtre[2]:
+                heures = sorted(predictions.loc[predictions["LiaisonId"].astype(str) == liaison_choisie, "Heure"].astype(int).unique().tolist())
+                heure_choisie = st.selectbox("Heure", heures, key=f"heure_{cle_modele}")
+        else:
+            heure_choisie = None
 
     filtre = predictions["LiaisonId"].astype(str) == liaison_choisie
     if colonne_categorie:
         filtre &= predictions[colonne_categorie].astype(str) == categorie_choisie
+    if granularite_horaire:
+        filtre &= predictions["Heure"].astype(int) == heure_choisie
 
     sous_ensemble = predictions[filtre].copy()
 
@@ -121,11 +138,7 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         st.warning("Aucune donnée disponible pour cette combinaison.")
         return
 
-    if "Heure" in sous_ensemble.columns:
-        sous_ensemble["Axe"] = sous_ensemble["Date"] + pd.to_timedelta(sous_ensemble["Heure"].astype(int), unit="h")
-    else:
-        sous_ensemble["Axe"] = sous_ensemble["Date"]
-
+    sous_ensemble["Axe"] = sous_ensemble["Date"]
     sous_ensemble = sous_ensemble.sort_values("Axe")
     sous_ensemble["Ecart"] = sous_ensemble["Prediction"] - sous_ensemble[info["cible"]]
 
@@ -152,23 +165,30 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         mode="lines", name="Prédiction", line=dict(color=PALETTE["red"], width=2.5),
         fill="tonexty", fillcolor="rgba(200,16,46,0.10)",
     ))
-    _mise_en_forme(figure, titre=f"{info['libelle']} — Liaison {liaison_choisie}", hauteur=420)
+    titre_graphe = f"{info['libelle']} — Liaison {liaison_choisie}"
+    if granularite_horaire:
+        titre_graphe += f" — {heure_choisie}h"
+    _mise_en_forme(figure, titre=titre_graphe, hauteur=420)
     figure.update_xaxes(title_text="Date")
     figure.update_yaxes(title_text=info["libelle_court"])
     st.plotly_chart(figure, use_container_width=True)
 
     colonne_gauche, colonne_droite = st.columns(2)
     with colonne_gauche:
-        figure_ecart = px.bar(sous_ensemble.dropna(subset=["Ecart"]), x="Axe", y="Ecart", color_discrete_sequence=[PALETTE["steel"]])
-        figure_ecart.update_traces(marker_line_width=0)
+        donnees_ecart = sous_ensemble.dropna(subset=["Ecart"]).copy()
+        donnees_ecart["AxeLabel"] = donnees_ecart["Axe"].dt.strftime("%d %b")
+        figure_ecart = px.bar(
+            donnees_ecart, x="AxeLabel", y="Ecart", color_discrete_sequence=[PALETTE["steel"]],
+            custom_data=["Axe"],
+        )
+        figure_ecart.update_traces(marker_line_width=0, hovertemplate="%{customdata[0]|%d %b %Y}<br>Écart : %{y:.3f}<extra></extra>")
         _mise_en_forme(figure_ecart, titre="Écart dans le temps (prédiction − réel)", hauteur=280, hovermode="closest", afficher_legende=False)
-        figure_ecart.update_xaxes(title_text="")
+        figure_ecart.update_xaxes(title_text="", type="category", tickangle=-45, nticks=10)
         figure_ecart.update_yaxes(title_text="")
         st.plotly_chart(figure_ecart, use_container_width=True)
     with colonne_droite:
-        figure_distribution = px.histogram(
-            sous_ensemble.dropna(subset=["Ecart"]), x="Ecart", nbins=30, color_discrete_sequence=[PALETTE["amber"]],
-        )
+        donnees_distribution = sous_ensemble.dropna(subset=["Ecart"])
+        figure_distribution = px.histogram(donnees_distribution, x="Ecart", color_discrete_sequence=[PALETTE["amber"]])
         figure_distribution.update_traces(marker_line_width=0)
         _mise_en_forme(figure_distribution, titre="Distribution des écarts", hauteur=280, hovermode="closest", afficher_legende=False)
         figure_distribution.update_xaxes(title_text="Écart")
