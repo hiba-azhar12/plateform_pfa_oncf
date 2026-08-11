@@ -93,7 +93,7 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
             ))
         figure.add_trace(go.Scatter(
             x=sous_ensemble["Date"], y=sous_ensemble["Prediction"],
-            mode="lines+markers", name="Prédiction", line=dict(color=PALETTE["red"], width=2.5), marker=dict(size=5),
+            mode="lines+markers", name="Prédiction", line=dict(color=PALETTE["orange"], width=2.5), marker=dict(size=5),
         ))
         figure.update_layout(
             template="plotly_white",

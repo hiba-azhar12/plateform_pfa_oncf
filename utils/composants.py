@@ -31,7 +31,7 @@ LIBELLES_METRIQUES = {
 
 JOURS_SEMAINE = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 MOIS_ABREGES = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
-SEQUENCE_ANNEES = [PALETTE["steel"], PALETTE["navy"], PALETTE["red"], PALETTE["amber"], PALETTE["green"]]
+SEQUENCE_ANNEES = [PALETTE["navy"], PALETTE["orange"], PALETTE["steel"], PALETTE["amber"], PALETTE["green"]]
 
 
 def _mise_en_forme(figure, titre=None, hauteur=380, hovermode="x unified", afficher_legende=True):
@@ -162,8 +162,8 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
     ))
     figure.add_trace(go.Scatter(
         x=sous_ensemble["Axe"], y=sous_ensemble["Prediction"],
-        mode="lines", name="Prédiction", line=dict(color=PALETTE["red"], width=2.5),
-        fill="tonexty", fillcolor="rgba(200,16,46,0.10)",
+        mode="lines", name="Prédiction", line=dict(color=PALETTE["orange"], width=2.5),
+        fill="tonexty", fillcolor="rgba(245,130,32,0.12)",
     ))
     titre_graphe = f"{info['libelle']} — Liaison {liaison_choisie}"
     if granularite_horaire:
@@ -299,7 +299,7 @@ def afficher_explicabilite_modele(cle_modele):
             agregee = importance_shap.groupby("Feature")[colonne_valeur].mean().sort_values(ascending=False).head(15).reset_index()
             figure = px.bar(
                 agregee, x=colonne_valeur, y="Feature", orientation="h",
-                color_discrete_sequence=[PALETTE["red"]], text=colonne_valeur,
+                color_discrete_sequence=[PALETTE["orange"]], text=colonne_valeur,
             )
             figure.update_traces(texttemplate="%{text:.3f}", textposition="outside", marker_line_width=0)
             _mise_en_forme(figure, titre="Importance SHAP", hauteur=460, hovermode="closest", afficher_legende=False)

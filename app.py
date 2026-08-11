@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils.style import appliquer_style
+from utils.style import appliquer_style, logo_pda_sidebar
 
 st.set_page_config(
     page_title="Plateforme ONCF - Performance Commerciale",
@@ -38,5 +38,7 @@ navigation = st.navigation({
     "Contrôles": pages_controles,
     "Analyse transverse": pages_transverse,
 })
+
+logo_pda_sidebar()
 
 navigation.run()
