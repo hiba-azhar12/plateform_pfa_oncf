@@ -1,28 +1,11 @@
-import streamlit as st
-
-PALETTE = {
-    "navy": "#0B2545",
-    "blue": "#13315C",
-    "steel": "#3A6EA5",
-    "orange": "#F58220",
-    "orange_fonce": "#D96A0F",
-    "red": "#C8102E",
-    "amber": "#B8860B",
-    "green": "#1E7145",
-    "bg": "#F4F6F9",
-    "surface": "#FFFFFF",
-    "border": "#DDE2E8",
-    "text": "#1C1F26",
-    "muted": "#5B6472",
-}
-
 import base64
 import os
 
 import streamlit as st
 
 PALETTE = {
-    "navy": "#0B2545",
+    "navy": "#2E3540",
+    "navy_fonce": "#242A33",
     "blue": "#13315C",
     "steel": "#3A6EA5",
     "orange": "#F58220",
@@ -30,11 +13,12 @@ PALETTE = {
     "red": "#C8102E",
     "amber": "#B8860B",
     "green": "#1E7145",
-    "bg": "#F4F6F9",
+    "bg": "#F5F1E8",
     "surface": "#FFFFFF",
-    "border": "#DDE2E8",
-    "text": "#1C1F26",
-    "muted": "#5B6472",
+    "border": "#E4DCC8",
+    "border_carte": "#EAD1A6",
+    "text": "#242A33",
+    "muted": "#6B7280",
 }
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,102 +47,94 @@ def appliquer_style():
 
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
+
         header[data-testid="stHeader"] {{
             background-color: transparent;
+            height: 0rem;
+            min-height: 0rem;
+        }}
+
+        div[data-testid="stAppViewContainer"] {{
+            background-color: {PALETTE["bg"]};
         }}
 
         .stApp {{
             background-color: {PALETTE["bg"]};
         }}
 
-        .block-container {{
-            padding-top: 1.2rem;
-            max-width: 1280px;
+        section[data-testid="stMain"] .block-container,
+        div[data-testid="stAppViewBlockContainer"] {{
+            padding-top: 0rem !important;
+            max-width: 1320px;
         }}
 
-        /* ---------- Sidebar ---------- */
         section[data-testid="stSidebar"] {{
             background-color: {PALETTE["navy"]};
-            border-right: 3px solid {PALETTE["orange"]};
+        }}
+
+        section[data-testid="stSidebar"] > div:first-child {{
+            padding-top: 1.2rem;
         }}
 
         section[data-testid="stSidebar"] * {{
             color: #E8ECF2 !important;
         }}
 
-        section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] {{
-            padding-top: 6px;
-        }}
-
         section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"],
         section[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"] {{
-            border-radius: 6px;
-            margin: 1px 8px;
-            transition: background-color 0.15s ease;
+            border-left: 3px solid transparent;
+            border-radius: 0;
+            padding-left: 12px;
+            transition: border-color 0.15s ease, color 0.15s ease;
         }}
 
         section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover,
         section[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"]:hover {{
-            background-color: rgba(245, 130, 32, 0.16) !important;
+            border-left-color: rgba(245, 130, 32, 0.5);
         }}
 
         section[data-testid="stSidebar"] [aria-current="page"],
         section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-selected="true"] {{
-            background-color: {PALETTE["orange"]} !important;
-            font-weight: 600;
+            border-left-color: {PALETTE["orange"]} !important;
+            font-weight: 700;
         }}
 
         section[data-testid="stSidebar"] [aria-current="page"] * {{
-            color: #FFFFFF !important;
+            color: {PALETTE["orange"]} !important;
         }}
 
         .logo-pda-sidebar {{
-            position: sticky;
-            bottom: 0;
-            left: 0;
-            padding: 14px 18px;
-            margin-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.15);
             display: flex;
-            align-items: center;
-            gap: 10px;
+            justify-content: center;
+            padding: 26px 18px 20px 18px;
+            margin-top: 30px;
         }}
 
-        .logo-pda-icone {{
-            width: 32px;
+        .logo-pda-sidebar img {{
+            width: 96px;
             height: auto;
-            flex-shrink: 0;
         }}
 
-        .logo-pda-texte {{
-            font-size: 0.78rem;
-            color: #B9C2D0 !important;
-            line-height: 1.15;
-        }}
-
-        /* ---------- Bandeau de marque (haut de chaque page) ---------- */
         .bandeau-marque {{
             background: {PALETTE["navy"]};
-            border-radius: 10px;
             padding: 0;
-            margin-bottom: 18px;
+            margin: 0 0 0 0;
             overflow: hidden;
             display: flex;
             align-items: center;
-            height: 64px;
+            height: 78px;
         }}
 
         .bandeau-marque-logo {{
             display: flex;
             align-items: center;
-            padding: 0 22px;
+            padding: 0 26px;
             height: 100%;
-            background: rgba(0,0,0,0.18);
             white-space: nowrap;
         }}
 
         .bandeau-marque-logo img {{
-            height: 32px;
+            height: 40px;
             width: auto;
         }}
 
@@ -169,43 +145,43 @@ def appliquer_style():
             align-items: center;
             justify-content: flex-end;
             overflow: hidden;
-            padding-right: 6px;
+            padding-right: 0;
         }}
 
         .bandeau-marque-train img {{
-            height: 68%;
+            height: 82%;
             width: auto;
             object-fit: contain;
         }}
 
-        /* ---------- Titre de page (bandeau orange) ---------- */
+        .bandeau-accent {{
+            background: {PALETTE["orange"]};
+            height: 10px;
+            width: 100%;
+        }}
+
         .entete-page {{
-            background: linear-gradient(90deg, {PALETTE["orange"]}, {PALETTE["orange_fonce"]});
-            border-radius: 10px;
-            padding: 16px 22px;
-            margin-bottom: 22px;
+            padding: 22px 28px 6px 28px;
         }}
 
         .entete-page h1 {{
-            color: #FFFFFF;
+            color: {PALETTE["text"]};
             font-weight: 700;
             font-size: 1.5rem;
-            margin-bottom: 2px;
+            margin: 0 0 4px 0;
         }}
 
         .entete-page p {{
-            color: rgba(255,255,255,0.88);
+            color: {PALETTE["muted"]};
             font-size: 0.92rem;
             margin: 0;
         }}
 
-        /* ---------- Cartes / conteneurs ---------- */
         div[data-testid="stMetric"] {{
             background-color: {PALETTE["surface"]};
-            border: 1px solid {PALETTE["border"]};
+            border: 1px solid {PALETTE["border_carte"]};
             border-radius: 10px;
             padding: 16px 18px;
-            box-shadow: 0 1px 3px rgba(11, 37, 69, 0.06);
         }}
 
         div[data-testid="stMetricLabel"] {{
@@ -217,12 +193,62 @@ def appliquer_style():
             font-weight: 700;
         }}
 
-        div[data-testid="stVerticalBlockBorderWrapper"] {{
+        .carte-fraude div[data-testid="stMetricValue"] {{
+            color: {PALETTE["red"]};
+        }}
+
+        .st-key-panneau_selection {{
+            background-color: {PALETTE["orange_fonce"]} !important;
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 18px 20px !important;
+        }}
+
+        div[class*="st-key-panneau_selection"] {{
+            background-color: {PALETTE["orange_fonce"]} !important;
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 18px 20px !important;
+        }}
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(div[class*="st-key-panneau_selection"]) {{
+            background-color: {PALETTE["orange_fonce"]} !important;
+            border: none !important;
             border-radius: 10px !important;
         }}
 
-        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {{
-            box-shadow: 0 1px 3px rgba(11, 37, 69, 0.06);
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(div[class*="st-key-panneau_selection"]) > div {{
+            background-color: transparent !important;
+        }}
+
+        .st-key-panneau_selection *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *),
+        div[class*="st-key-panneau_selection"] *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *) {{
+            color: #FFFFFF !important;
+        }}
+
+        .st-key-panneau_selection .react-aria-ComboBox,
+        .st-key-panneau_selection .react-aria-ComboBox *,
+        div[class*="st-key-panneau_selection"] .react-aria-ComboBox,
+        div[class*="st-key-panneau_selection"] .react-aria-ComboBox * {{
+            color: {PALETTE["text"]} !important;
+            -webkit-text-fill-color: {PALETTE["text"]} !important;
+            background-color: #FFFFFF !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }}
+
+        .st-key-panneau_selection .react-aria-ComboBox,
+        div[class*="st-key-panneau_selection"] .react-aria-ComboBox {{
+            border-radius: 6px !important;
+        }}
+
+        .st-key-panneau_selection div[data-baseweb="select"],
+        .st-key-panneau_selection div[data-baseweb="select"] *,
+        div[class*="st-key-panneau_selection"] div[data-baseweb="select"],
+        div[class*="st-key-panneau_selection"] div[data-baseweb="select"] * {{
+            color: {PALETTE["text"]} !important;
+            -webkit-text-fill-color: {PALETTE["text"]} !important;
+            background-color: #FFFFFF !important;
         }}
 
         .bandeau-statut {{
@@ -251,16 +277,11 @@ def appliquer_style():
             color: #7A0E1E;
         }}
 
-        .carte-fraude div[data-testid="stMetricValue"] {{
-            color: {PALETTE["red"]};
-        }}
-
         div[data-testid="stDataFrame"] {{
             border: 1px solid {PALETTE["border"]};
             border-radius: 8px;
         }}
 
-        /* ---------- Boutons ---------- */
         .stButton > button, .stDownloadButton > button {{
             background-color: {PALETTE["orange"]};
             color: #FFFFFF;
@@ -275,7 +296,6 @@ def appliquer_style():
             color: #FFFFFF;
         }}
 
-        /* ---------- Selects / dropdowns (rappel du panneau orange du gabarit) ---------- */
         div[data-baseweb="select"] > div {{
             border-color: {PALETTE["border"]};
             border-radius: 6px;
@@ -286,26 +306,61 @@ def appliquer_style():
             box-shadow: 0 0 0 1px {PALETTE["orange"]} !important;
         }}
 
-        /* ---------- Onglets ---------- */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 4px;
+            gap: 22px;
+            border-bottom: 1px solid {PALETTE["border"]};
         }}
 
         .stTabs [data-baseweb="tab"] {{
-            background-color: {PALETTE["surface"]};
-            border: 1px solid {PALETTE["border"]};
-            border-radius: 6px 6px 0 0;
-            padding: 8px 18px;
+            background-color: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            padding: 8px 2px;
             color: {PALETTE["muted"]};
         }}
 
         .stTabs [aria-selected="true"] {{
-            background-color: {PALETTE["navy"]};
-            color: #FFFFFF !important;
-            border-bottom: 3px solid {PALETTE["orange"]};
+            background-color: transparent !important;
+            color: {PALETTE["text"]} !important;
+            border-bottom: 3px solid {PALETTE["orange"]} !important;
+            font-weight: 600;
         }}
 
-        /* ---------- Chat ---------- */
+        [data-testid="stExpander"] {{
+            border: none;
+            box-shadow: none;
+        }}
+
+        [data-testid="stExpander"] summary {{
+            background-color: {PALETTE["orange_fonce"]} !important;
+            color: #FFFFFF !important;
+            border-radius: 8px 8px 0 0;
+            padding: 10px 16px;
+            font-weight: 600;
+        }}
+
+        [data-testid="stExpander"] summary p {{
+            color: #FFFFFF !important;
+            font-weight: 600;
+        }}
+
+        [data-testid="stExpander"] summary svg {{
+            fill: #FFFFFF !important;
+        }}
+
+        [data-testid="stExpander"] details {{
+            border: 1px solid {PALETTE["orange_fonce"]};
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+
+        [data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
+            background-color: #FFFFFF;
+            border-top: none;
+            padding: 16px;
+        }}
+
         [data-testid="stChatMessage"] {{
             border-radius: 12px;
             border: 1px solid {PALETTE["border"]};
@@ -317,13 +372,12 @@ def appliquer_style():
 
 
 def bandeau_marque():
-    """Bandeau de marque décoratif en haut de chaque page (logo ONCF + train)."""
     logo_oncf = _image_base64(CHEMIN_LOGO_ONCF)
     logo_train = _image_base64(CHEMIN_LOGO_TRAIN)
 
     bloc_logo = (
         f'<img src="data:image/png;base64,{logo_oncf}" alt="ONCF" />'
-        if logo_oncf else '<span style="color:white;font-weight:800;">ONCF</span>'
+        if logo_oncf else '<span style="color:white;font-weight:800;font-size:1.4rem;">ONCF</span>'
     )
     bloc_train = (
         f'<img src="data:image/png;base64,{logo_train}" alt="Train ONCF" />'
@@ -336,23 +390,20 @@ def bandeau_marque():
             <div class="bandeau-marque-logo">{bloc_logo}</div>
             <div class="bandeau-marque-train">{bloc_train}</div>
         </div>
+        <div class="bandeau-accent"></div>
         """,
         unsafe_allow_html=True,
     )
 
 
 def logo_pda_sidebar():
-    """Logo PDA épinglé en bas de la barre latérale."""
     logo_pda = _image_base64(CHEMIN_LOGO_PDA)
-    bloc_icone = (
-        f'<img class="logo-pda-icone" src="data:image/png;base64,{logo_pda}" alt="PDA" />'
-        if logo_pda else '<div class="logo-pda-icone"></div>'
-    )
+    if not logo_pda:
+        return
     st.sidebar.markdown(
         f"""
         <div class="logo-pda-sidebar">
-            {bloc_icone}
-            <div class="logo-pda-texte">Plateforme<br>Performance Commerciale</div>
+            <img src="data:image/png;base64,{logo_pda}" alt="PDA" />
         </div>
         """,
         unsafe_allow_html=True,

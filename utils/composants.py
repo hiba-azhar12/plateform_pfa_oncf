@@ -101,7 +101,7 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
 
     granularite_horaire = info["granularite"] == "horaire" and "Heure" in predictions.columns
 
-    with st.container(border=True):
+    with st.container(border=True, key=f"panneau_selection_{cle_modele}"):
         st.markdown("**Sélection**")
         colonnes_filtre = st.columns([2, 1, 1]) if granularite_horaire else st.columns([2, 1])
         with colonnes_filtre[0]:
