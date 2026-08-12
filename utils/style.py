@@ -85,7 +85,7 @@ def appliquer_style():
             opacity: 1 !important;
             z-index: 999999 !important;
             position: fixed !important;
-            top: 116px !important;
+            top: 0.5rem !important;
         }}
 
         div[data-testid="stElementContainer"]:has(style) {{
@@ -105,53 +105,69 @@ def appliquer_style():
             background-color: {PALETTE["bg"]};
         }}
 
-        /* Le vrai conteneur de scroll de Streamlit : on garde son overflow
-           intact, on ne fait que retirer le padding-top pour que le bandeau
-           colle bien en haut. */
+        /*
+        IMPORTANT : on NE touche PAS à display/height/min-height de
+        section[data-testid="stMain"] ou div[data-testid="stMain"].
+        Streamlit s'appuie sur ces conteneurs (flex + hauteur bornée +
+        overflow-y: auto) pour permettre le scroll de la page. Les
+        forcer en display:block / height:auto casse le scroll sur
+        TOUTE l'application, pas seulement sur la page chatbot.
+        On corrige uniquement le padding-top ici.
+        */
         section[data-testid="stMain"] {{
             padding-top: 0 !important;
             margin-top: 0 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
         }}
 
         section[data-testid="stMain"] .block-container,
         div[data-testid="stAppViewBlockContainer"] {{
-            padding: 106px 6rem 3rem 6rem !important;
+            padding: 0rem 6rem 3rem 6rem !important;
             margin: 0 !important;
             max-width: 100% !important;
         }}
 
-        /* Le sticky ne fonctionne pas de façon fiable à travers le DOM
-           interne de Streamlit (un ancêtre casse toujours le contexte).
-           On passe donc le bandeau en position fixed par rapport à la
-           fenêtre : il ne peut plus jamais disparaître au scroll. Le
-           padding-top ajouté au block-container ci-dessus compense la
-           hauteur du bandeau pour que rien ne passe dessous. */
+        /*
+        Fix pour la page Chatbot : Streamlit pose un style INLINE
+        "justify-content: center" (flex-direction: column) directement
+        sur section[data-testid="stMain"] dès qu'un st.chat_input est
+        présent sur la page. Le but est de centrer verticalement une
+        conversation courte. Si le contenu ne remplit pas toute la
+        hauteur de la fenêtre, ça pousse le contenu (donc ton entete())
+        vers le bas pour le centrer -> gap visible en haut.
+        On override UNIQUEMENT justify-content (pas display, pas
+        height) pour ne pas casser le scroll de section[data-testid="stMain"].
+        Le !important dans une feuille de style bat un style inline
+        sans !important, donc ça suffit.
+        */
+        section[data-testid="stMain"] {{
+            justify-content: flex-start !important;
+        }}
+
+        div[data-testid="stMainBlockContainer"],
+        div[data-testid="stAppViewBlockContainer"] {{
+            justify-content: flex-start !important;
+        }}
+
         .bandeau-marque-wrapper {{
-            position: fixed;
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            width: 100vw;
-            z-index: 9000;
+            z-index: 999;
+            background: {PALETTE["bg"]};
         }}
 
         .bandeau-marque,
         .bandeau-accent {{
-            width: 100% !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
+            margin-left: -6rem !important;
+            margin-right: -6rem !important;
+            width: calc(100% + 12rem) !important;
         }}
 
         section[data-testid="stSidebar"] {{
             background-color: {PALETTE["navy"]};
         }}
 
-        /* La sidebar doit aussi être décalée sous le bandeau fixe,
-           sinon son contenu commence sous le bandeau (recouvert). */
         section[data-testid="stSidebar"] > div:first-child {{
-            padding-top: 106px !important;
+            padding-top: 0.3rem;
         }}
 
         section[data-testid="stSidebar"] * {{
@@ -467,9 +483,84 @@ def appliquer_style():
             padding: 16px;
         }}
 
+        /*
+        On laisse stBottom / stBottomBlockContainer avec leur
+        comportement par défaut (position sticky en bas, hauteur
+        auto gérée par Streamlit) pour ne pas casser le scroll.
+        On ne modifie que le fond et le padding horizontal pour
+        rester cohérent avec le reste de la mise en page.
+        */
+        div[data-testid="stBottomBlockContainer"] {{
+            background-color: {PALETTE["bg"]} !important;
+            padding-left: 6rem !important;
+            padding-right: 6rem !important;
+            padding-top: 8px !important;
+            padding-bottom: 24px !important;
+        }}
+
+        div[data-testid="stChatInput"] {{
+            background-color: {PALETTE["surface"]} !important;
+            border: 1px solid {PALETTE["border_carte"]} !important;
+            border-radius: 10px !important;
+        }}
+
+        div[data-testid="stChatInput"] textarea {{
+            color: {PALETTE["text"]} !important;
+        }}
+
+        div[data-testid="stChatInput"] textarea::placeholder {{
+            color: {PALETTE["muted"]} !important;
+        }}
+
+        div[data-testid="stChatInput"] button {{
+            background-color: {PALETTE["orange"]} !important;
+            border-radius: 6px !important;
+        }}
+
+        div[data-testid="stChatInput"] button:hover {{
+            background-color: {PALETTE["orange_fonce"]} !important;
+        }}
+
+        div[data-testid="stChatInput"] button svg {{
+            fill: #FFFFFF !important;
+        }}
+
         [data-testid="stChatMessage"] {{
             border-radius: 12px;
             border: 1px solid {PALETTE["border"]};
+            background-color: {PALETTE["surface"]};
+            padding: 10px 14px;
+        }}
+
+        [data-testid="stChatMessageAvatarUser"] {{
+            background-color: {PALETTE["steel"]} !important;
+        }}
+
+        [data-testid="stChatMessageAvatarAssistant"] {{
+            background-color: {PALETTE["orange"]} !important;
+        }}
+
+        .etat-vide-chat {{
+            text-align: center;
+            padding: 40px 0 24px 0;
+            color: {PALETTE["muted"]};
+        }}
+
+        .etat-vide-chat p {{
+            font-size: 0.95rem;
+            margin: 0;
+        }}
+
+        .st-key-questions_suggerees .stButton > button,
+        div[class*="st-key-questions_suggerees"] .stButton > button {{
+            min-height: 68px;
+            height: 100%;
+            white-space: normal;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }}
         </style>
         """,

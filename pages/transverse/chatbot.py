@@ -31,17 +31,21 @@ def _afficher_reponse(reponse):
         st.dataframe(reponse["tableau"], use_container_width=True, hide_index=True)
 
 
+def _afficher_suggestions():
+    st.markdown("**Questions fréquentes**")
+    with st.container(key="questions_suggerees"):
+        colonnes = st.columns(len(QUESTIONS_SUGGEREES))
+        for i, (colonne, question) in enumerate(zip(colonnes, QUESTIONS_SUGGEREES)):
+            with colonne:
+                if st.button(question, use_container_width=True, key=f"suggestion_{i}_{len(st.session_state['historique_chat'])}"):
+                    st.session_state["message_en_attente"] = question
+
+
 for role, contenu in st.session_state["historique_chat"]:
     with st.chat_message(role):
         _afficher_reponse(contenu)
 
-if not st.session_state["historique_chat"]:
-    st.markdown("**Questions fréquentes**")
-    colonnes = st.columns(len(QUESTIONS_SUGGEREES))
-    for colonne, question in zip(colonnes, QUESTIONS_SUGGEREES):
-        with colonne:
-            if st.button(question, use_container_width=True, key=f"suggestion_{question}"):
-                st.session_state["message_en_attente"] = question
+_afficher_suggestions()
 
 message = st.chat_input("Posez une question sur les ventes, les contrôles ou la fraude")
 if st.session_state["message_en_attente"]:
