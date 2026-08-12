@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils.style import appliquer_style, logo_pda_sidebar
+from utils.style import appliquer_style, logo_oncf_sidebar, logo_pda_sidebar
 
 st.set_page_config(
     page_title="Plateforme ONCF - Performance Commerciale",
@@ -9,6 +9,7 @@ st.set_page_config(
 )
 
 appliquer_style()
+logo_oncf_sidebar()
 
 pages_predictions = [
     st.Page("pages/predictions/nouvelles_predictions.py", title="Nouvelles Prédictions"),

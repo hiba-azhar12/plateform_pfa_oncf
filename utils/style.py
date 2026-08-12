@@ -48,24 +48,53 @@ def appliquer_style():
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
 
-        header[data-testid="stHeader"] {{
-            background-color: transparent;
-            height: 0rem;
-            min-height: 0rem;
+        div[data-testid="stDecoration"] {{
+            display: none !important;
+        }}
+
+        div[data-testid="stToolbar"] {{
+            display: none !important;
+        }}
+
+        html, body {{
+            margin: 0 !important;
+            padding: 0 !important;
+        }}
+
+        div[data-testid="stSidebarCollapsedControl"] {{
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 999999 !important;
         }}
 
         div[data-testid="stAppViewContainer"] {{
             background-color: {PALETTE["bg"]};
+            padding: 0 !important;
+            margin: 0 !important;
         }}
 
         .stApp {{
             background-color: {PALETTE["bg"]};
         }}
 
+        section[data-testid="stMain"] {{
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }}
+
         section[data-testid="stMain"] .block-container,
         div[data-testid="stAppViewBlockContainer"] {{
-            padding-top: 0rem !important;
-            max-width: 1320px;
+            padding: 0rem 6rem !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }}
+
+        .bandeau-marque,
+        .bandeau-accent {{
+            margin-left: -6rem !important;
+            margin-right: -6rem !important;
+            width: calc(100% + 12rem) !important;
         }}
 
         section[data-testid="stSidebar"] {{
@@ -103,6 +132,20 @@ def appliquer_style():
             color: {PALETTE["orange"]} !important;
         }}
 
+        .logo-oncf-sidebar {{
+            display: flex;
+            justify-content: center;
+            padding: 20px 18px 22px 18px;
+        }}
+
+        .logo-oncf-sidebar img {{
+            width: 130px;
+            height: auto;
+            background-color: #FFFFFF;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }}
+
         .logo-pda-sidebar {{
             display: flex;
             justify-content: center;
@@ -118,24 +161,13 @@ def appliquer_style():
         .bandeau-marque {{
             background: {PALETTE["navy"]};
             padding: 0;
-            margin: 0 0 0 0;
+            margin: 0;
             overflow: hidden;
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             height: 78px;
-        }}
-
-        .bandeau-marque-logo {{
-            display: flex;
-            align-items: center;
-            padding: 0 26px;
-            height: 100%;
-            white-space: nowrap;
-        }}
-
-        .bandeau-marque-logo img {{
-            height: 40px;
-            width: auto;
+            width: 100%;
         }}
 
         .bandeau-marque-train {{
@@ -372,13 +404,8 @@ def appliquer_style():
 
 
 def bandeau_marque():
-    logo_oncf = _image_base64(CHEMIN_LOGO_ONCF)
     logo_train = _image_base64(CHEMIN_LOGO_TRAIN)
 
-    bloc_logo = (
-        f'<img src="data:image/png;base64,{logo_oncf}" alt="ONCF" />'
-        if logo_oncf else '<span style="color:white;font-weight:800;font-size:1.4rem;">ONCF</span>'
-    )
     bloc_train = (
         f'<img src="data:image/png;base64,{logo_train}" alt="Train ONCF" />'
         if logo_train else ""
@@ -387,10 +414,23 @@ def bandeau_marque():
     st.markdown(
         f"""
         <div class="bandeau-marque">
-            <div class="bandeau-marque-logo">{bloc_logo}</div>
             <div class="bandeau-marque-train">{bloc_train}</div>
         </div>
         <div class="bandeau-accent"></div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def logo_oncf_sidebar():
+    logo_oncf = _image_base64(CHEMIN_LOGO_ONCF)
+    if not logo_oncf:
+        return
+    st.sidebar.markdown(
+        f"""
+        <div class="logo-oncf-sidebar">
+            <img src="data:image/png;base64,{logo_oncf}" alt="ONCF" />
+        </div>
         """,
         unsafe_allow_html=True,
     )
