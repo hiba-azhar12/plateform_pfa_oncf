@@ -85,7 +85,7 @@ def appliquer_style():
             opacity: 1 !important;
             z-index: 999999 !important;
             position: fixed !important;
-            top: 0.5rem !important;
+            top: 116px !important;
         }}
 
         div[data-testid="stElementContainer"]:has(style) {{
@@ -93,10 +93,6 @@ def appliquer_style():
             height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-        }}
-
-        section[data-testid="stMain"] div[data-testid="stVerticalBlock"] {{
-            gap: 0 !important;
         }}
 
         div[data-testid="stAppViewContainer"] {{
@@ -109,31 +105,53 @@ def appliquer_style():
             background-color: {PALETTE["bg"]};
         }}
 
+        /* Le vrai conteneur de scroll de Streamlit : on garde son overflow
+           intact, on ne fait que retirer le padding-top pour que le bandeau
+           colle bien en haut. */
         section[data-testid="stMain"] {{
             padding-top: 0 !important;
             margin-top: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
         }}
 
         section[data-testid="stMain"] .block-container,
         div[data-testid="stAppViewBlockContainer"] {{
-            padding: 0rem 6rem !important;
+            padding: 106px 6rem 3rem 6rem !important;
             margin: 0 !important;
             max-width: 100% !important;
         }}
 
+        /* Le sticky ne fonctionne pas de façon fiable à travers le DOM
+           interne de Streamlit (un ancêtre casse toujours le contexte).
+           On passe donc le bandeau en position fixed par rapport à la
+           fenêtre : il ne peut plus jamais disparaître au scroll. Le
+           padding-top ajouté au block-container ci-dessus compense la
+           hauteur du bandeau pour que rien ne passe dessous. */
+        .bandeau-marque-wrapper {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100vw;
+            z-index: 9000;
+        }}
+
         .bandeau-marque,
         .bandeau-accent {{
-            margin-left: -6rem !important;
-            margin-right: -6rem !important;
-            width: calc(100% + 12rem) !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
         }}
 
         section[data-testid="stSidebar"] {{
             background-color: {PALETTE["navy"]};
         }}
 
+        /* La sidebar doit aussi être décalée sous le bandeau fixe,
+           sinon son contenu commence sous le bandeau (recouvert). */
         section[data-testid="stSidebar"] > div:first-child {{
-            padding-top: 1.2rem;
+            padding-top: 106px !important;
         }}
 
         section[data-testid="stSidebar"] * {{
@@ -166,21 +184,50 @@ def appliquer_style():
         div[data-testid="stSidebarHeader"] {{
             {fond_logo_oncf}
             background-repeat: no-repeat;
-            background-position: 18px center;
-            background-size: 155px auto;
-            min-height: 96px;
+            background-position: 6px top;
+            background-size: 190px auto;
+            min-height: 100px;
+        }}
+
+        div[data-testid="stSidebarNav"] {{
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }}
+
+        div[data-testid="stSidebarNav"] + hr,
+        section[data-testid="stSidebar"] hr {{
+            display: none !important;
         }}
 
         .logo-pda-sidebar {{
             display: flex;
-            justify-content: center;
-            padding: 26px 18px 20px 18px;
-            margin-top: 30px;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 18px 20px 16px;
+            margin-top: 0;
+            border-top: none;
+            box-shadow: none;
         }}
 
         .logo-pda-sidebar img {{
-            width: 96px;
+            width: 70px;
             height: auto;
+            margin-left: -8px;
+        }}
+
+        section[data-testid="stSidebar"] .pda-label {{
+            color: {PALETTE["orange"]} !important;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            margin-top: 0;
+            text-align: center;
+        }}
+
+        section[data-testid="stSidebar"] .pda-label strong {{
+            color: {PALETTE["orange"]} !important;
+            font-weight: 700;
         }}
 
         .bandeau-marque {{
@@ -191,7 +238,7 @@ def appliquer_style():
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            height: 78px;
+            height: 96px;
             width: 100%;
         }}
 
@@ -202,11 +249,13 @@ def appliquer_style():
             align-items: center;
             justify-content: flex-end;
             overflow: hidden;
-            padding-right: 0;
+            padding-right: 24px;
+            padding-top: 0;
+            padding-bottom: 0;
         }}
 
         .bandeau-marque-train img {{
-            height: 82%;
+            height: 55%;
             width: auto;
             object-fit: contain;
         }}
@@ -457,6 +506,10 @@ def logo_pda_sidebar():
         f"""
         <div class="logo-pda-sidebar">
             <img src="data:image/png;base64,{logo_pda}" alt="PDA" />
+            <div class="pda-label">
+                Plateforme Performance Commerciale<br/>
+                <strong>PDA</strong>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
