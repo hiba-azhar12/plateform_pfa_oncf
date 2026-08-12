@@ -89,13 +89,17 @@ else:
     tableau = pd.DataFrame([{k: v for k, v in ligne.items() if k != "_chemin"} for ligne in fichiers])
     st.dataframe(tableau, use_container_width=True, hide_index=True)
 
-    with st.expander("Télécharger un rapport précédent"):
-        for ligne in fichiers:
-            with open(ligne["_chemin"], "rb") as fichier:
-                st.download_button(
-                    ligne["Fichier"],
-                    data=fichier.read(),
-                    file_name=ligne["Fichier"],
-                    mime="application/pdf",
-                    key=ligne["Fichier"],
-                )
+    with st.expander("Télécharger un rapport précédent", expanded=True):
+        nb_colonnes = 4
+        colonnes = st.columns(nb_colonnes)
+        for indice, ligne in enumerate(fichiers):
+            with colonnes[indice % nb_colonnes]:
+                with open(ligne["_chemin"], "rb") as fichier:
+                    st.download_button(
+                        ligne["Date de génération"],
+                        data=fichier.read(),
+                        file_name=ligne["Fichier"],
+                        mime="application/pdf",
+                        key=ligne["Fichier"],
+                        use_container_width=True,
+                    )

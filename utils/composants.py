@@ -126,7 +126,7 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
 
     with st.container(border=True, key=f"panneau_selection_{cle_modele}"):
         st.markdown("**Sélection**")
-        poids = [2] + ([1] if colonne_categorie else []) + [1, 1.3] + ([1] if granularite_horaire else [])
+        poids = [2] + ([1] if colonne_categorie else []) + [2] + ([1] if granularite_horaire else [])
         colonnes_filtre = st.columns(poids)
         indice = 0
 
@@ -145,14 +145,15 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
             categorie_choisie = None
 
         with colonnes_filtre[indice]:
-            toutes_dates = st.checkbox(OPTION_TOUTES_DATES, value=True, key=f"toutes_dates_{cle_modele}")
-        indice += 1
-
-        with colonnes_filtre[indice]:
-            date_selectionnee = st.date_input(
-                "Date précise", value=date_max, min_value=date_min, max_value=date_max,
-                key=f"date_{cle_modele}", disabled=toutes_dates,
-            )
+            sous_champ, sous_case = st.columns([1.6, 1.1])
+            with sous_case:
+                st.markdown("<div style='height: 1.9rem'></div>", unsafe_allow_html=True)
+                toutes_dates = st.checkbox(OPTION_TOUTES_DATES, value=True, key=f"toutes_dates_{cle_modele}")
+            with sous_champ:
+                date_selectionnee = st.date_input(
+                    "Date précise", value=date_max, min_value=date_min, max_value=date_max,
+                    key=f"date_{cle_modele}", disabled=toutes_dates,
+                )
         indice += 1
 
         if granularite_horaire:
@@ -284,29 +285,49 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         figure.update_yaxes(title_text=info["libelle_court"])
         st.plotly_chart(figure, use_container_width=True)
 
-        with st.expander(f"Table complète des liaisons ({len(agrege)})", expanded=False):
+        with st.expander(f"Table complète des liaisons ({len(agrege)})", expanded=True):
             table = agrege.rename(columns={cible: "Réel"})[["LiaisonId", "Réel", "Prediction", "Ecart"]]
             st.dataframe(table, use_container_width=True, hide_index=True)
 
     else:
         if heure_est_all:
-            valeur_reelle = sous_ensemble[cible].agg(fonction_agg)
-            valeur_prediction = sous_ensemble["Prediction"].agg(fonction_agg)
+            serie_horaire = sous_ensemble.sort_values("Heure")
+            total_reel = serie_horaire[cible].sum()
+            total_prediction = serie_horaire["Prediction"].sum()
+
+            st.markdown("**Variation par heure**")
+            st.caption(titre_graphe)
+            colonne_un, colonne_deux, colonne_trois = st.columns(3)
+            with colonne_un:
+                st.metric("Total réel", f"{total_reel:.1f}")
+            with colonne_deux:
+                st.metric("Total prédiction", f"{total_prediction:.1f}")
+            with colonne_trois:
+                st.metric("Écart total", f"{(total_prediction - total_reel):+.1f}")
+
+            figure = go.Figure()
+            figure.add_trace(go.Bar(x=serie_horaire["Heure"], y=serie_horaire[cible], name="Réel", marker_color=PALETTE["navy"]))
+            figure.add_trace(go.Bar(x=serie_horaire["Heure"], y=serie_horaire["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
+            figure.update_layout(barmode="group")
+            _mise_en_forme(figure, titre=titre_graphe, hauteur=380)
+            figure.update_xaxes(title_text="Heure", type="category")
+            figure.update_yaxes(title_text=info["libelle_court"])
+            st.plotly_chart(figure, use_container_width=True)
         else:
             ligne = sous_ensemble.iloc[0]
             valeur_reelle = ligne[cible]
             valeur_prediction = ligne["Prediction"]
-        ecart = valeur_prediction - valeur_reelle if pd.notna(valeur_reelle) else None
+            ecart = valeur_prediction - valeur_reelle if pd.notna(valeur_reelle) else None
 
-        st.markdown("**Valeur pour cette sélection**")
-        st.caption(titre_graphe)
-        colonne_un, colonne_deux, colonne_trois = st.columns(3)
-        with colonne_un:
-            st.metric("Réel", f"{valeur_reelle:.1f}" if pd.notna(valeur_reelle) else "en attente")
-        with colonne_deux:
-            st.metric("Prédiction", f"{valeur_prediction:.1f}")
-        with colonne_trois:
-            st.metric("Écart", f"{ecart:+.1f}" if ecart is not None else "—")
+            st.markdown("**Valeur pour cette sélection**")
+            st.caption(titre_graphe)
+            colonne_un, colonne_deux, colonne_trois = st.columns(3)
+            with colonne_un:
+                st.metric("Réel", f"{valeur_reelle:.1f}" if pd.notna(valeur_reelle) else "en attente")
+            with colonne_deux:
+                st.metric("Prédiction", f"{valeur_prediction:.1f}")
+            with colonne_trois:
+                st.metric("Écart", f"{ecart:+.1f}" if ecart is not None else "—")
 
 
 def afficher_anomalies_modele(cle_modele):
@@ -353,7 +374,7 @@ def afficher_anomalies_modele(cle_modele):
         hide_index=True,
     )
 
-    with st.expander("Détail des anomalies critiques"):
+    with st.expander("Détail des anomalies critiques", expanded=True):
         critiques = anomalies_detectees[anomalies_detectees["Severite"] == "critique"].head(10)
         for _, ligne in critiques.iterrows():
             texte = phrase_anomalie(

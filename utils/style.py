@@ -105,46 +105,18 @@ def appliquer_style():
             background-color: {PALETTE["bg"]};
         }}
 
-        /*
-        IMPORTANT : on NE touche PAS à display/height/min-height de
-        section[data-testid="stMain"] ou div[data-testid="stMain"].
-        Streamlit s'appuie sur ces conteneurs (flex + hauteur bornée +
-        overflow-y: auto) pour permettre le scroll de la page. Les
-        forcer en display:block / height:auto casse le scroll sur
-        TOUTE l'application, pas seulement sur la page chatbot.
-        On corrige uniquement le padding-top ici.
-        */
-        section[data-testid="stMain"] {{
+        section.stMain {{
             padding-top: 0 !important;
             margin-top: 0 !important;
+            justify-content: flex-start !important;
         }}
 
-        section[data-testid="stMain"] .block-container,
+        section.stMain .block-container,
+        div[data-testid="stMainBlockContainer"],
         div[data-testid="stAppViewBlockContainer"] {{
             padding: 0rem 6rem 3rem 6rem !important;
             margin: 0 !important;
             max-width: 100% !important;
-        }}
-
-        /*
-        Fix pour la page Chatbot : Streamlit pose un style INLINE
-        "justify-content: center" (flex-direction: column) directement
-        sur section[data-testid="stMain"] dès qu'un st.chat_input est
-        présent sur la page. Le but est de centrer verticalement une
-        conversation courte. Si le contenu ne remplit pas toute la
-        hauteur de la fenêtre, ça pousse le contenu (donc ton entete())
-        vers le bas pour le centrer -> gap visible en haut.
-        On override UNIQUEMENT justify-content (pas display, pas
-        height) pour ne pas casser le scroll de section[data-testid="stMain"].
-        Le !important dans une feuille de style bat un style inline
-        sans !important, donc ça suffit.
-        */
-        section[data-testid="stMain"] {{
-            justify-content: flex-start !important;
-        }}
-
-        div[data-testid="stMainBlockContainer"],
-        div[data-testid="stAppViewBlockContainer"] {{
             justify-content: flex-start !important;
         }}
 
@@ -373,6 +345,38 @@ def appliquer_style():
             background-color: #FFFFFF !important;
         }}
 
+        .st-key-panneau_selection div[data-baseweb="input"],
+        .st-key-panneau_selection div[data-baseweb="input"] *,
+        div[class*="st-key-panneau_selection"] div[data-baseweb="input"],
+        div[class*="st-key-panneau_selection"] div[data-baseweb="input"] * {{
+            color: {PALETTE["text"]} !important;
+            -webkit-text-fill-color: {PALETTE["text"]} !important;
+            background-color: #FFFFFF !important;
+        }}
+
+        .st-key-panneau_selection div[data-testid="stDateInput"] input,
+        div[class*="st-key-panneau_selection"] div[data-testid="stDateInput"] input {{
+            color: {PALETTE["text"]} !important;
+            -webkit-text-fill-color: {PALETTE["text"]} !important;
+            background-color: #FFFFFF !important;
+        }}
+
+        div[data-baseweb="select"] > div,
+        div[data-testid="stDateInput"] div[data-baseweb="input"] {{
+            min-height: 42px !important;
+            height: 42px !important;
+            box-sizing: border-box !important;
+        }}
+
+        div[data-baseweb="select"] > div > div,
+        div[data-testid="stDateInput"] input {{
+            display: flex !important;
+            align-items: center !important;
+            height: 100% !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }}
+
         .bandeau-statut {{
             border-radius: 8px;
             padding: 14px 18px;
@@ -483,13 +487,6 @@ def appliquer_style():
             padding: 16px;
         }}
 
-        /*
-        On laisse stBottom / stBottomBlockContainer avec leur
-        comportement par défaut (position sticky en bas, hauteur
-        auto gérée par Streamlit) pour ne pas casser le scroll.
-        On ne modifie que le fond et le padding horizontal pour
-        rester cohérent avec le reste de la mise en page.
-        */
         div[data-testid="stBottomBlockContainer"] {{
             background-color: {PALETTE["bg"]} !important;
             padding-left: 6rem !important;

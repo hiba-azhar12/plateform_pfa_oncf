@@ -55,42 +55,46 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
         date_min = donnees["Date"].min().date()
         date_max = donnees["Date"].max().date()
 
-        poids = [2] + ([1] if info["colonne_categorie"] else []) + [1, 1.3] + ([1] if granularite_horaire else [])
-        colonnes_filtre = st.columns(poids)
-        indice = 0
+        poids = [2] + ([1] if info["colonne_categorie"] else []) + [2] + ([1] if granularite_horaire else [])
 
-        with colonnes_filtre[indice]:
-            liaisons = liaisons_ordonnees_nouvelles_predictions(cle_modele)
-            options_liaison = [OPTION_TOUTES_LIAISONS] + liaisons
-            liaison_choisie = st.selectbox("Liaison", options_liaison, key=f"nouvelle_liaison_{cle_modele}")
-        indice += 1
+        with st.container(border=True, key=f"panneau_selection_nouvelle_{cle_modele}"):
+            st.markdown("**Sélection**")
+            colonnes_filtre = st.columns(poids)
+            indice = 0
 
-        if info["colonne_categorie"] and info["colonne_categorie"] in donnees.columns:
             with colonnes_filtre[indice]:
-                categories = sorted(donnees[info["colonne_categorie"]].astype(str).unique().tolist())
-                categorie_choisie = st.selectbox(info["colonne_categorie"], categories, key=f"nouvelle_categorie_{cle_modele}")
+                liaisons = liaisons_ordonnees_nouvelles_predictions(cle_modele)
+                options_liaison = [OPTION_TOUTES_LIAISONS] + liaisons
+                liaison_choisie = st.selectbox("Liaison", options_liaison, key=f"nouvelle_liaison_{cle_modele}")
             indice += 1
-        else:
-            categorie_choisie = None
 
-        with colonnes_filtre[indice]:
-            toutes_dates = st.checkbox(OPTION_TOUTES_DATES, value=True, key=f"nouvelle_toutes_dates_{cle_modele}")
-        indice += 1
+            if info["colonne_categorie"] and info["colonne_categorie"] in donnees.columns:
+                with colonnes_filtre[indice]:
+                    categories = sorted(donnees[info["colonne_categorie"]].astype(str).unique().tolist())
+                    categorie_choisie = st.selectbox(info["colonne_categorie"], categories, key=f"nouvelle_categorie_{cle_modele}")
+                indice += 1
+            else:
+                categorie_choisie = None
 
-        with colonnes_filtre[indice]:
-            date_selectionnee = st.date_input(
-                "Date précise", value=date_max, min_value=date_min, max_value=date_max,
-                key=f"nouvelle_date_{cle_modele}", disabled=toutes_dates,
-            )
-        indice += 1
-
-        if granularite_horaire:
             with colonnes_filtre[indice]:
-                heures = sorted(donnees["Heure"].astype(int).unique().tolist())
-                options_heure = [OPTION_TOUTES_HEURES] + heures
-                heure_choisie = st.selectbox("Heure", options_heure, key=f"nouvelle_heure_{cle_modele}")
-        else:
-            heure_choisie = None
+                sous_champ, sous_case = st.columns([1.6, 1.1])
+                with sous_case:
+                    st.markdown("<div style='height: 1.9rem'></div>", unsafe_allow_html=True)
+                    toutes_dates = st.checkbox(OPTION_TOUTES_DATES, value=True, key=f"nouvelle_toutes_dates_{cle_modele}")
+                with sous_champ:
+                    date_selectionnee = st.date_input(
+                        "Date précise", value=date_max, min_value=date_min, max_value=date_max,
+                        key=f"nouvelle_date_{cle_modele}", disabled=toutes_dates,
+                    )
+            indice += 1
+
+            if granularite_horaire:
+                with colonnes_filtre[indice]:
+                    heures = sorted(donnees["Heure"].astype(int).unique().tolist())
+                    options_heure = [OPTION_TOUTES_HEURES] + heures
+                    heure_choisie = st.selectbox("Heure", options_heure, key=f"nouvelle_heure_{cle_modele}")
+            else:
+                heure_choisie = None
 
         liaison_est_all = liaison_choisie == OPTION_TOUTES_LIAISONS
         heure_est_all = granularite_horaire and heure_choisie == OPTION_TOUTES_HEURES
@@ -179,28 +183,51 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
             figure.update_yaxes(title_text=info["libelle_court"])
             st.plotly_chart(figure, use_container_width=True)
 
-            with st.expander(f"Table complète des liaisons ({len(agrege)})", expanded=False):
+            with st.expander(f"Table complète des liaisons ({len(agrege)})", expanded=True):
                 st.dataframe(agrege, use_container_width=True, hide_index=True)
 
         else:
             if heure_est_all:
-                valeur_reelle = sous_ensemble["Reel"].agg(fonction_agg)
-                valeur_prediction = sous_ensemble["Prediction"].agg(fonction_agg)
+                serie_horaire = sous_ensemble.sort_values("Heure")
+                total_reel = serie_horaire["Reel"].sum()
+                total_prediction = serie_horaire["Prediction"].sum()
+
+                st.caption(titre_graphe)
+                colonne_un, colonne_deux, colonne_trois = st.columns(3)
+                with colonne_un:
+                    st.metric("Total prédiction", f"{total_prediction:.1f}")
+                with colonne_deux:
+                    reel_connu = serie_horaire.dropna(subset=["Reel"])
+                    valeur = f"{total_reel:.1f}" if not reel_connu.empty else "en attente"
+                    st.metric("Total réel", valeur)
+                with colonne_trois:
+                    reel_connu = serie_horaire.dropna(subset=["Reel"])
+                    valeur = f"{(total_prediction - total_reel):+.1f}" if not reel_connu.empty else "—"
+                    st.metric("Écart total", valeur)
+
+                figure = go.Figure()
+                figure.add_trace(go.Bar(x=serie_horaire["Heure"], y=serie_horaire["Reel"], name="Réel", marker_color=PALETTE["navy"]))
+                figure.add_trace(go.Bar(x=serie_horaire["Heure"], y=serie_horaire["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
+                figure.update_layout(barmode="group")
+                _mise_en_forme(figure, titre=titre_graphe, hauteur=380)
+                figure.update_xaxes(title_text="Heure", type="category")
+                figure.update_yaxes(title_text=info["libelle_court"])
+                st.plotly_chart(figure, use_container_width=True)
             else:
                 ligne = sous_ensemble.iloc[0]
                 valeur_reelle = ligne["Reel"]
                 valeur_prediction = ligne["Prediction"]
-            ecart = abs(valeur_reelle - valeur_prediction) if pd.notna(valeur_reelle) else None
+                ecart = abs(valeur_reelle - valeur_prediction) if pd.notna(valeur_reelle) else None
 
-            st.caption(titre_graphe)
-            colonne_un, colonne_deux, colonne_trois = st.columns(3)
-            with colonne_un:
-                st.metric("Prédiction", f"{valeur_prediction:.1f}")
-            with colonne_deux:
-                st.metric("Réel", f"{valeur_reelle:.1f}" if pd.notna(valeur_reelle) else "en attente")
-            with colonne_trois:
-                st.metric("Erreur absolue", f"{ecart:.1f}" if ecart is not None else "—")
+                st.caption(titre_graphe)
+                colonne_un, colonne_deux, colonne_trois = st.columns(3)
+                with colonne_un:
+                    st.metric("Prédiction", f"{valeur_prediction:.1f}")
+                with colonne_deux:
+                    st.metric("Réel", f"{valeur_reelle:.1f}" if pd.notna(valeur_reelle) else "en attente")
+                with colonne_trois:
+                    st.metric("Erreur absolue", f"{ecart:.1f}" if ecart is not None else "—")
 
-        with st.expander("Table détaillée"):
+        with st.expander("Table détaillée", expanded=True):
             colonnes = [c for c in ["Date", "Heure", "LiaisonId", info["colonne_categorie"], "Prediction", "DateCalculPrediction", "Reel", "ErreurAbsolue"] if c and c in sous_ensemble.columns]
             st.dataframe(sous_ensemble[colonnes].sort_values("Date", ascending=False), use_container_width=True, hide_index=True)
