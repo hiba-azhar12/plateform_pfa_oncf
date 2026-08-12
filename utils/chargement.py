@@ -106,6 +106,30 @@ def modele_dispose_de_donnees(cle_modele):
 
 
 @st.cache_data(show_spinner=False)
+def liaisons_ordonnees_par_frequence(cle_modele):
+    predictions = charger_predictions(cle_modele)
+    if predictions.empty or "LiaisonId" not in predictions.columns:
+        return []
+    cible = MODELES[cle_modele]["cible"]
+    liaisons = predictions["LiaisonId"].astype(str)
+    if cible not in predictions.columns:
+        return sorted(liaisons.unique().tolist())
+    frequence = predictions.assign(LiaisonId=liaisons).groupby("LiaisonId")[cible].sum()
+    return frequence.sort_values(ascending=False).index.tolist()
+
+
+@st.cache_data(show_spinner=False)
+def liaisons_ordonnees_nouvelles_predictions(cle_modele):
+    predictions = charger_predictions_nouvelles(cle_modele)
+    if predictions.empty or "LiaisonId" not in predictions.columns:
+        return []
+    colonne_volume = "Reel" if "Reel" in predictions.columns else "Prediction"
+    liaisons = predictions["LiaisonId"].astype(str)
+    frequence = predictions.assign(LiaisonId=liaisons).groupby("LiaisonId")[colonne_volume].sum()
+    return frequence.sort_values(ascending=False).index.tolist()
+
+
+@st.cache_data(show_spinner=False)
 def charger_predictions_nouvelles(cle_modele):
     from config.chemins import PREDICTIONS_NOUVELLES
 

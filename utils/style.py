@@ -343,8 +343,8 @@ def appliquer_style():
             background-color: transparent !important;
         }}
 
-        .st-key-panneau_selection *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *),
-        div[class*="st-key-panneau_selection"] *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *) {{
+        .st-key-panneau_selection *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *):not(div[data-baseweb="input"]):not(div[data-baseweb="input"] *),
+        div[class*="st-key-panneau_selection"] *:not(.react-aria-ComboBox):not(.react-aria-ComboBox *):not(div[data-baseweb="input"]):not(div[data-baseweb="input"] *) {{
             color: #FFFFFF !important;
         }}
 
