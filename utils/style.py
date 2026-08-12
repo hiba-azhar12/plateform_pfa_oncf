@@ -38,6 +38,12 @@ def _image_base64(chemin):
 
 
 def appliquer_style():
+    logo_oncf_b64 = _image_base64(CHEMIN_LOGO_ONCF)
+    fond_logo_oncf = (
+        f'background-image: url("data:image/png;base64,{logo_oncf_b64}");'
+        if logo_oncf_b64 else ""
+    )
+
     st.markdown(
         f"""
         <style>
@@ -61,11 +67,36 @@ def appliquer_style():
             padding: 0 !important;
         }}
 
+        div[data-testid="stHeader"] {{
+            height: 0 !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+        }}
+
+        div[data-testid="stHeader"] > div {{
+            display: none !important;
+        }}
+
         div[data-testid="stSidebarCollapsedControl"] {{
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
             z-index: 999999 !important;
+            position: fixed !important;
+            top: 0.5rem !important;
+        }}
+
+        div[data-testid="stElementContainer"]:has(style) {{
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }}
+
+        section[data-testid="stMain"] div[data-testid="stVerticalBlock"] {{
+            gap: 0 !important;
         }}
 
         div[data-testid="stAppViewContainer"] {{
@@ -132,18 +163,12 @@ def appliquer_style():
             color: {PALETTE["orange"]} !important;
         }}
 
-        .logo-oncf-sidebar {{
-            display: flex;
-            justify-content: center;
-            padding: 20px 18px 22px 18px;
-        }}
-
-        .logo-oncf-sidebar img {{
-            width: 130px;
-            height: auto;
-            background-color: #FFFFFF;
-            border-radius: 8px;
-            padding: 10px 14px;
+        div[data-testid="stSidebarHeader"] {{
+            {fond_logo_oncf}
+            background-repeat: no-repeat;
+            background-position: 18px center;
+            background-size: 155px auto;
+            min-height: 96px;
         }}
 
         .logo-pda-sidebar {{
@@ -413,23 +438,11 @@ def bandeau_marque():
 
     st.markdown(
         f"""
-        <div class="bandeau-marque">
-            <div class="bandeau-marque-train">{bloc_train}</div>
-        </div>
-        <div class="bandeau-accent"></div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def logo_oncf_sidebar():
-    logo_oncf = _image_base64(CHEMIN_LOGO_ONCF)
-    if not logo_oncf:
-        return
-    st.sidebar.markdown(
-        f"""
-        <div class="logo-oncf-sidebar">
-            <img src="data:image/png;base64,{logo_oncf}" alt="ONCF" />
+        <div class="bandeau-marque-wrapper">
+            <div class="bandeau-marque">
+                <div class="bandeau-marque-train">{bloc_train}</div>
+            </div>
+            <div class="bandeau-accent"></div>
         </div>
         """,
         unsafe_allow_html=True,
