@@ -17,11 +17,15 @@ FICHIERS_COMMUNS = {
 }
 
 
-def _fichiers(predictions, historique, anomalies):
+def _fichiers(predictions, historique, anomalies, comparaison=None, calendrier=None):
     fichiers = dict(FICHIERS_COMMUNS)
     fichiers["predictions"] = predictions
     fichiers["historique"] = historique
     fichiers["anomalies"] = anomalies
+    if comparaison is not None:
+        fichiers["comparaison_inter_annees"] = comparaison
+    if calendrier is not None:
+        fichiers["calendrier_quotidien"] = calendrier
     return fichiers
 
 
@@ -70,7 +74,10 @@ MODELES = {
         "format_modele": "lightgbm",
         "dossier_modeles": "modeles",
         "mapping_modeles": "mapping_modeles_NiveauConfort.json",
-        "fichiers": _fichiers("predictions_test_confort.parquet", "historique_brut_confort.parquet", "anomalies_confort.csv"),
+        "fichiers": _fichiers(
+            "predictions_test_confort.parquet", "historique_brut_confort.parquet", "anomalies_confort.csv",
+            comparaison="comparaison_inter_annees_confort.csv", calendrier="calendrier_quotidien_confort.csv",
+        ),
     },
     "modele3_controles": {
         "domaine": "controles",
@@ -131,7 +138,10 @@ MODELES = {
         "format_modele": "lightgbm",
         "dossier_modeles": "modeles",
         "mapping_modeles": "mapping_modeles_TypeTitre.json",
-        "fichiers": _fichiers("predictions_test_type.parquet", "historique_brut_type.parquet", "anomalies_type.csv"),
+        "fichiers": _fichiers(
+            "predictions_test_type.parquet", "historique_brut_type.parquet", "anomalies_type.csv",
+            comparaison="comparaison_inter_annees_type.csv", calendrier="calendrier_quotidien_type.csv",
+        ),
     },
 }
 

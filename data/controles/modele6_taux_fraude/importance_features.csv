@@ -1,3 +1,40 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2a9b6b085c64020baa7223cf692cf581eca87b1fe20359088e87cf109844c695
-size 1399
+Feature,Importance
+interaction_jour_liaison_fraudes,462.7620647996664
+liaison_frequence,356.8894798308611
+log_offset_controles,135.04698505997658
+LiaisonId,92.63791581988335
+liaison_cible_encodage_fraudes,75.99600540101528
+rolling_std_30_fraudes,71.62620082497597
+rolling_std_30_controles,71.0265896692872
+rolling_std_14_controles,68.71825197339058
+rolling_mean_30_fraudes,64.52014100551605
+rolling_mean_30_controles,52.68341647088528
+rolling_mean_14_controles,48.801975063979626
+rolling_std_7_controles,41.41019121557474
+jour_semaine_sin,35.70325893163681
+rolling_mean_14_fraudes,35.45626278221607
+rolling_mean_7_controles,35.452708289027214
+NbControles,34.1810197904706
+mois_cos,33.20263122022152
+rolling_mean_7_fraudes,28.132606357336044
+mois_sin,25.31437796354294
+JourSemaine,24.217222698032856
+jour_semaine_cos,20.91476307809353
+lag_1_controles,20.735446203500032
+lag_7_controles,19.60428696870804
+Mois,18.75867160409689
+rolling_std_14_fraudes,17.830627918243408
+rolling_std_7_fraudes,17.066085025668144
+lag_30_controles,16.074515365064144
+lag_14_controles,15.080267995595932
+Annee,11.536354035139084
+lag_365_controles,8.428233936429024
+lag_14_fraudes,4.111185967922211
+lag_365_fraudes,2.3445140421390533
+lag_1_fraudes,2.091488018631935
+lag_30_fraudes,1.1578660011291504
+lag_7_fraudes,0.6454329937696457
+EstRamadan,0.5467559993267059
+EstWeekend,0.0
+EstFerie,0.0
+EstVacances,0.0

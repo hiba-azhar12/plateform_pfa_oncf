@@ -1,5 +1,5 @@
 {
   "Cible": "TauxFraude",
-  "SeuilAnomalie": 0.1520205774126815,
+  "SeuilAnomalie": 0.3290674093544135,
   "Methode": "moyenne + 2 ecarts-types"
 }
