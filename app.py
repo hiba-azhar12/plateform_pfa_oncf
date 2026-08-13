@@ -30,6 +30,7 @@ pages_transverse = [
     st.Page("pages/transverse/comparaison_inter_annees.py", title="Comparaison inter-années"),
     st.Page("pages/transverse/rapports.py", title="Rapports"),
     st.Page("pages/transverse/chatbot.py", title="Chatbot"),
+    st.Page("pages/transverse/administration.py", title="Administration"),
 ]
 
 navigation = st.navigation({

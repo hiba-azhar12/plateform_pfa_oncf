@@ -39,8 +39,8 @@ def calculer_features_calendaires(dates, avec_heure=False, heures=None):
     table["EstRamadan"] = table["Date"].apply(lambda d: _dans_une_periode(d, RAMADAN_PERIODES))
     table["EstVacances"] = table["Date"].apply(lambda d: _dans_une_periode(d, VACANCES_SCOLAIRES_PERIODES))
 
-    table["jour_sin"] = np.sin(2 * np.pi * table["JourSemaine"] / 7)
-    table["jour_cos"] = np.cos(2 * np.pi * table["JourSemaine"] / 7)
+    table["jour_semaine_sin"] = np.sin(2 * np.pi * table["JourSemaine"] / 7)
+    table["jour_semaine_cos"] = np.cos(2 * np.pi * table["JourSemaine"] / 7)
     table["mois_sin"] = np.sin(2 * np.pi * table["Mois"] / 12)
     table["mois_cos"] = np.cos(2 * np.pi * table["Mois"] / 12)
 
@@ -155,23 +155,25 @@ def calculer_liaison_frequence(historique, colonnes_groupe):
     return historique.groupby(colonnes_groupe, observed=True)[colonnes_groupe[0]].transform("count")
 
 
-def calculer_lags(historique, colonne_cible, colonnes_groupe, lags):
+def calculer_lags(historique, colonne_cible, colonnes_groupe, lags, nom_suffixe=None):
+    suffixe = nom_suffixe or colonne_cible
     historique = historique.sort_values(colonnes_groupe + ["Date"]).reset_index(drop=True)
     groupe = historique.groupby(colonnes_groupe, observed=True)[colonne_cible]
     for lag in lags:
-        historique[f"lag_{lag}_{colonne_cible}"] = groupe.shift(lag)
-    historique[f"{colonne_cible}_j_moins_1"] = groupe.shift(1)
+        historique[f"lag_{lag}_{suffixe}"] = groupe.shift(lag)
+    historique[f"{suffixe}_j_moins_1"] = groupe.shift(1)
     return historique
 
 
-def calculer_rolling(historique, colonne_cible, colonnes_groupe, fenetres):
-    colonne_decalee = f"{colonne_cible}_j_moins_1"
+def calculer_rolling(historique, colonne_cible, colonnes_groupe, fenetres, nom_suffixe=None):
+    suffixe = nom_suffixe or colonne_cible
+    colonne_decalee = f"{suffixe}_j_moins_1"
     for fenetre in fenetres:
-        historique[f"rolling_mean_{fenetre}_{colonne_cible}"] = (
+        historique[f"rolling_mean_{fenetre}_{suffixe}"] = (
             historique.groupby(colonnes_groupe, observed=True)[colonne_decalee]
             .rolling(fenetre).mean().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
         )
-        historique[f"rolling_std_{fenetre}_{colonne_cible}"] = (
+        historique[f"rolling_std_{fenetre}_{suffixe}"] = (
             historique.groupby(colonnes_groupe, observed=True)[colonne_decalee]
             .rolling(fenetre).std().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
         )
