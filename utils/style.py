@@ -169,6 +169,11 @@ def appliquer_style():
             color: {PALETTE["orange"]} !important;
         }}
 
+        section[data-testid="stSidebar"] a[href*="/accueil"],
+        section[data-testid="stSidebar"] a[href$="accueil"] {{
+            display: none !important;
+        }}
+
         div[data-testid="stSidebarHeader"] {{
             {fond_logo_oncf}
             background-repeat: no-repeat;

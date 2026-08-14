@@ -11,6 +11,7 @@ st.set_page_config(
 appliquer_style()
 
 pages_predictions = [
+    st.Page("pages/accueil.py", title="Accueil", url_path="accueil", default=True),
     st.Page("pages/predictions/nouvelles_predictions.py", title="Nouvelles Prédictions"),
 ]
 
@@ -30,6 +31,7 @@ pages_transverse = [
     st.Page("pages/transverse/comparaison_inter_annees.py", title="Comparaison inter-années"),
     st.Page("pages/transverse/rapports.py", title="Rapports"),
     st.Page("pages/transverse/chatbot.py", title="Chatbot"),
+    st.Page("pages/transverse/guide_chatbot.py", title="Guide du chatbot"),
     st.Page("pages/transverse/administration.py", title="Administration"),
 ]
 
