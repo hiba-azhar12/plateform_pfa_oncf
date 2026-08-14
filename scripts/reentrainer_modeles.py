@@ -352,4 +352,13 @@ def reentrainer_tous():
 
 
 if __name__ == "__main__":
-    print(json.dumps(reentrainer_tous(), indent=2, default=str))
+    import argparse
+
+    analyseur = argparse.ArgumentParser()
+    analyseur.add_argument("--modele", default=None)
+    arguments = analyseur.parse_args()
+
+    if arguments.modele:
+        print(json.dumps(reentrainer(arguments.modele), indent=2, default=str))
+    else:
+        print(json.dumps(reentrainer_tous(), indent=2, default=str))

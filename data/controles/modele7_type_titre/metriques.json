@@ -1,9 +1,11 @@
 {
+  "RMSE": 0.17606960755264167,
+  "MAE": 0.0938045078364848,
+  "MedAE": 0.0710328808009318,
+  "WMAPE": 0.18447887062814855,
+  "NbLignesValidation": 53740,
   "Cible": "PartType",
-  "Modele": "MODELE 7 PART TYPE TITRE - LIGHTGBM PAR CATEGORIE",
-  "RMSE": 0.1783193989476126,
-  "MAE": 0.09984360795308851,
-  "LogLossComposition": 0.0657,
-  "NbLignesTest": 232519,
-  "NbLignesActives": 56350
+  "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+  "DateReentrainement": "2026-08-14 20:29:51",
+  "NbLignesEntrainement": 205665
 }

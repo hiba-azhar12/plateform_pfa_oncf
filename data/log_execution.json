@@ -1016,5 +1016,152 @@
       "RMSE": 0.13616552928022443,
       "MAE": 0.10661110310453477
     }
+  },
+  {
+    "horodatage": "2026-08-14 20:11:39",
+    "type": "reentrainement",
+    "cle_modele": "modele6_taux_fraude",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "TauxFraude",
+      "Modele": "MODELE 6 TAUX FRAUDE - LIGHTGBM REGRESSION",
+      "RMSE": 0.14759057277650509,
+      "MAE": 0.07587209496971334,
+      "MedAE": 0.05030824803817894,
+      "WMAPE": 0.9813079891202467,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.054265090206065396,
+      "MAE": 0.030054513968030012,
+      "DateReentrainement": "2026-08-14 20:11:39",
+      "NbLignesEntrainement": 23034
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:15:03",
+    "type": "reentrainement",
+    "cle_modele": "modele6_taux_fraude",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.054265090206065396,
+      "MAE": 0.030054513968030012,
+      "DateReentrainement": "2026-08-14 20:11:39",
+      "NbLignesEntrainement": 23034
+    },
+    "metriques_apres": {
+      "RMSE": 0.054265090206065396,
+      "MAE": 0.030054513968030012,
+      "DateReentrainement": "2026-08-14 20:15:03",
+      "NbLignesEntrainement": 23034
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:16:07",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "PartType",
+      "Modele": "MODELE 7 PART TYPE TITRE - LIGHTGBM PAR CATEGORIE",
+      "RMSE": 0.1783193989476126,
+      "MAE": 0.09984360795308851,
+      "LogLossComposition": 0.0657,
+      "NbLignesTest": 232519,
+      "NbLignesActives": 56350
+    },
+    "metriques_apres": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-14 20:16:07",
+      "NbLignesEntrainement": 205665
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:18:55",
+    "type": "reentrainement",
+    "cle_modele": "modele4_part_confort",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "PartConfort",
+      "Modele": "MODELE 4 PART CONFORT - LIGHTGBM PAR CATEGORIE",
+      "RMSE": 0.0860684685485518,
+      "MAE": 0.03566034687859332,
+      "LogLossComposition": 0.0287,
+      "NbLignesTest": 189964,
+      "NbLignesActives": 49848
+    },
+    "metriques_apres": {
+      "RMSE": 0.08694982238441,
+      "MAE": 0.03549498695762005,
+      "DateReentrainement": "2026-08-14 20:18:55",
+      "NbLignesEntrainement": 238878
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:22:06",
+    "type": "reentrainement",
+    "cle_modele": "modele5_taux_controle",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "TauxControle",
+      "Modele": "MODELE 5 TAUX CONTROLE - CATBOOST TWEEDIE",
+      "RMSE": 0.11363049773392578,
+      "MAE": 0.07994027284919579,
+      "MedAE": 0.053557274872857386,
+      "WMAPE": 0.2913969668896036,
+      "TweedieVariancePower": 1.5,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.13616552928022443,
+      "MAE": 0.10661110310453477
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:28:58",
+    "type": "reentrainement",
+    "cle_modele": "modele6_taux_fraude",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.054265090206065396,
+      "MAE": 0.030054513968030012,
+      "DateReentrainement": "2026-08-14 20:15:03",
+      "NbLignesEntrainement": 23034
+    },
+    "metriques_apres": {
+      "RMSE": 0.05424051435356198,
+      "MAE": 0.03005386313661199,
+      "MedAE": 0.01598726332191633,
+      "WMAPE": 0.3994574496055946,
+      "NbLignesValidation": 8267,
+      "Cible": "TauxFraude",
+      "Modele": "TAUX FRAUDE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-14 20:28:58",
+      "NbLignesEntrainement": 23034
+    }
+  },
+  {
+    "horodatage": "2026-08-14 20:29:51",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-14 20:16:07",
+      "NbLignesEntrainement": 205665
+    },
+    "metriques_apres": {
+      "RMSE": 0.17606960755264167,
+      "MAE": 0.0938045078364848,
+      "MedAE": 0.0710328808009318,
+      "WMAPE": 0.18447887062814855,
+      "NbLignesValidation": 53740,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-14 20:29:51",
+      "NbLignesEntrainement": 205665
+    }
   }
 ]

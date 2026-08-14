@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 
@@ -16,7 +17,6 @@ from config.chemins import (
     LOG_EXECUTION,
 )
 from config.modeles import MODELES, chemin_fichier
-from scripts.reentrainer_modeles import reentrainer
 from scripts.traiter_depot_quotidien import executer as executer_traitement_quotidien
 
 app = FastAPI(title="API Plateforme ONCF")
@@ -78,7 +78,33 @@ async def obtenir_metriques(cle_modele: str):
 async def declencher_reentrainement(cle_modele: str):
     if cle_modele not in MODELES:
         raise HTTPException(status_code=404, detail="modele inconnu")
-    return reentrainer(cle_modele)
+
+    resultat = subprocess.run(
+        [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele],
+        capture_output=True, text=True, timeout=1800,
+    )
+
+    if resultat.returncode != 0:
+        raise HTTPException(
+            status_code=500,
+            detail=f"le processus de reentrainement a echoue (code {resultat.returncode}) : {resultat.stderr[-2000:]}",
+        )
+
+    lignes = resultat.stdout.strip().splitlines()
+    json_trouve = None
+    for ligne in reversed(lignes):
+        ligne = ligne.strip()
+        if ligne.startswith("{"):
+            json_trouve = ligne
+            break
+
+    if json_trouve is None:
+        raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
+
+    try:
+        return json.loads(json_trouve)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
 
 
 @app.get("/etat-pipeline")
