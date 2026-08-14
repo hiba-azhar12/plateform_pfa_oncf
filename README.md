@@ -135,6 +135,9 @@ journalise le résultat dans `data/log_execution.json`.
 ```
 source .venv/bin/activate
 streamlit run app.py
+
+chmod +x scripts/lancer_api.sh
+./scripts/lancer_api.sh
 ```
 
 ## 9. Calendrier marocain à maintenir chaque année

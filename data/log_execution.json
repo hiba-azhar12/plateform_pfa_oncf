@@ -955,5 +955,66 @@
     "cle_modele": "modele7_part_type",
     "statut": "echec",
     "erreur": "historique_insuffisant"
+  },
+  {
+    "horodatage": "2026-08-14 18:04:59",
+    "type": "reentrainement",
+    "cle_modele": "modele6_taux_fraude",
+    "statut": "echec",
+    "erreur": "historique_insuffisant"
+  },
+  {
+    "horodatage": "2026-08-14 18:16:34",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "echec",
+    "erreur": "historique_insuffisant"
+  },
+  {
+    "horodatage": "2026-08-14 18:19:55",
+    "type": "reentrainement",
+    "cle_modele": "modele5_taux_controle",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "TauxControle",
+      "Modele": "MODELE 5 TAUX CONTROLE - CATBOOST TWEEDIE",
+      "RMSE": 0.11363049773392578,
+      "MAE": 0.07994027284919579,
+      "MedAE": 0.053557274872857386,
+      "WMAPE": 0.2913969668896036,
+      "TweedieVariancePower": 1.5,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.13616552928022443,
+      "MAE": 0.10661110310453477
+    }
+  },
+  {
+    "horodatage": "2026-08-14 18:23:21",
+    "type": "reentrainement",
+    "cle_modele": "modele4_part_confort",
+    "statut": "echec",
+    "erreur": "historique_insuffisant"
+  },
+  {
+    "horodatage": "2026-08-14 19:02:51",
+    "type": "reentrainement",
+    "cle_modele": "modele5_taux_controle",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "TauxControle",
+      "Modele": "MODELE 5 TAUX CONTROLE - CATBOOST TWEEDIE",
+      "RMSE": 0.11363049773392578,
+      "MAE": 0.07994027284919579,
+      "MedAE": 0.053557274872857386,
+      "WMAPE": 0.2913969668896036,
+      "TweedieVariancePower": 1.5,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.13616552928022443,
+      "MAE": 0.10661110310453477
+    }
   }
 ]

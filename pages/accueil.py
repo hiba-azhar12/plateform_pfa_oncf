@@ -79,10 +79,30 @@ st.markdown(
         margin: 0;
     }}
 
+    .accueil-hero h1 a {{
+        display: none !important;
+    }}
+
     .st-key-accueil_page div[data-testid="stElementContainer"]:has(div[data-testid="stButton"]) {{
         margin: 34px 0 0 8vw !important;
-        max-width: 780px;
-        text-align: center;
+        width: 780px !important;
+        max-width: calc(100vw - 16vw) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }}
+
+    .st-key-accueil_page .stButton {{
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100%;
+        flex: none !important;
+    }}
+
+    .st-key-accueil_page .stButton > button {{
+        flex: none !important;
+        width: auto !important;
     }}
 
     .st-key-accueil_page .stButton > button {{
@@ -94,6 +114,11 @@ st.markdown(
         font-size: 1.35rem !important;
         padding: 16px 44px !important;
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28) !important;
+    }}
+
+    .st-key-accueil_page .stButton > button p,
+    .st-key-accueil_page .stButton > button div {{
+        font-weight: 900 !important;
     }}
 
     .st-key-accueil_page .stButton > button:hover {{
@@ -123,7 +148,7 @@ st.markdown(
         height: 60px;
         width: auto;
         transform: translate(-100%, -50%);
-        animation: accueil-glissement-train 15s linear infinite;
+        animation: accueil-glissement-train 12s linear infinite;
         will-change: transform;
     }}
 
@@ -159,7 +184,8 @@ st.markdown(
         }}
         .st-key-accueil_page div[data-testid="stElementContainer"]:has(div[data-testid="stButton"]) {{
             margin-left: 5vw !important;
-            max-width: 92%;
+            width: 90vw !important;
+            max-width: 90vw !important;
         }}
     }}
     </style>

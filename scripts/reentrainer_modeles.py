@@ -282,6 +282,7 @@ def reentrainer(cle_modele):
     historique = pd.read_parquet(chemin_historique)
     table = construire_table_entrainement(cle_modele, historique)
     table = table.dropna(subset=[info["cible"]])
+    table, encodage = _encoder_liaison(cle_modele, table)
 
     colonnes_attendues = json.load(open(chemin_fichier(cle_modele, "colonnes_features")))
     for colonne in colonnes_attendues:
@@ -294,7 +295,6 @@ def reentrainer(cle_modele):
         _ecrire_log(resultat)
         return resultat
 
-    table, encodage = _encoder_liaison(cle_modele, table)
     colonnes_modele = ["LiaisonId_code" if c == "LiaisonId" and info["multi_categorie"] else c for c in colonnes_attendues]
 
     anciennes_metriques = _metriques_actuelles(cle_modele)

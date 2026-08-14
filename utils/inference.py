@@ -19,7 +19,7 @@ CIBLES_TRAITEMENT = {
     "modele3_controles": {"completes": [("controles", "NbControles")], "exogenes": []},
     "modele2_taux_vente_guichet": {"completes": [("ventes", "NbBillets")], "exogenes": [("circulations", "NbCirculations")]},
     "modele5_taux_controle": {"completes": [("controles", "NbControles")], "exogenes": [("circulations", "NbCirculations")]},
-    "modele6_taux_fraude": {"completes": [("fraudes", "NbFraudes"), ("controles", "NbControles")], "exogenes": []},
+    "modele6_taux_fraude": {"completes": [("fraudes", "NbFraudes")], "exogenes": [("controles", "NbControles")]},
     "modele4_part_confort": {"completes": [("ventes", "NbBillets")], "exogenes": []},
     "modele7_part_type": {"completes": [("controles", "NbControles")], "exogenes": []},
 }
