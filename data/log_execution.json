@@ -1163,5 +1163,152 @@
       "DateReentrainement": "2026-08-14 20:29:51",
       "NbLignesEntrainement": 205665
     }
+  },
+  {
+    "horodatage": "2026-08-16 17:28:11",
+    "type": "reentrainement",
+    "cle_modele": "modele4_part_confort",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.08694982238441,
+      "MAE": 0.03549498695762005,
+      "DateReentrainement": "2026-08-14 20:18:55",
+      "NbLignesEntrainement": 238878
+    },
+    "metriques_apres": {
+      "RMSE": 0.08694982238441,
+      "MAE": 0.03549498695762005,
+      "DateReentrainement": "2026-08-16 17:28:11",
+      "NbLignesEntrainement": 238878
+    }
+  },
+  {
+    "horodatage": "2026-08-16 17:40:48",
+    "type": "reentrainement",
+    "cle_modele": "modele5_taux_controle",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "TauxControle",
+      "Modele": "MODELE 5 TAUX CONTROLE - CATBOOST TWEEDIE",
+      "RMSE": 0.11363049773392578,
+      "MAE": 0.07994027284919579,
+      "MedAE": 0.053557274872857386,
+      "WMAPE": 0.2913969668896036,
+      "TweedieVariancePower": 1.5,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.13616552928022443,
+      "MAE": 0.10661110310453477
+    }
+  },
+  {
+    "horodatage": "2026-08-16 17:42:20",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.17606960755264167,
+      "MAE": 0.0938045078364848,
+      "MedAE": 0.0710328808009318,
+      "WMAPE": 0.18447887062814855,
+      "NbLignesValidation": 53740,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-14 20:29:51",
+      "NbLignesEntrainement": 205665
+    },
+    "metriques_apres": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-16 17:42:20",
+      "NbLignesEntrainement": 205665
+    }
+  },
+  {
+    "horodatage": "2026-08-16 17:47:32",
+    "type": "reentrainement",
+    "cle_modele": "modele2_taux_vente_guichet",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "TauxVenteGuichet",
+      "Modele": "MODELE 2 TAUX VENTE GUICHET - LIGHTGBM TWEEDIE",
+      "RMSE": 0.06633334002636289,
+      "MAE": 0.04957427709625108,
+      "MedAE": 0.03789823982950333,
+      "WMAPE": 0.20486767947145182,
+      "TweedieVariancePower": 1.9,
+      "NbLignesTest": 27987
+    },
+    "metriques_apres": {
+      "RMSE": 0.06640032014507616,
+      "MAE": 0.048926779391625104,
+      "DateReentrainement": "2026-08-16 17:47:32",
+      "NbLignesEntrainement": 106900
+    }
+  },
+  {
+    "horodatage": "2026-08-16 17:49:10",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-16 17:42:20",
+      "NbLignesEntrainement": 205665
+    },
+    "metriques_apres": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-16 17:49:10",
+      "NbLignesEntrainement": 205665
+    }
+  },
+  {
+    "horodatage": "2026-08-16 18:32:13",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "NbBillets",
+      "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE",
+      "RMSE": 5.993973531502185,
+      "MAE": 0.9591344043284944,
+      "NbLignesTest": 2092984
+    },
+    "metriques_apres": {
+      "RMSE": 6.786392252688093,
+      "MAE": 1.3815846621533505,
+      "MedAE": 0.28386210733736306,
+      "WMAPE": 0.6914181751874438,
+      "NbLignesValidation": 1565469,
+      "Cible": "NbBillets",
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE"
+    }
+  },
+  {
+    "horodatage": "2026-08-16 18:45:40",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "statut": "rejete",
+    "metriques_avant": {
+      "Cible": "NbControles",
+      "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1",
+      "RMSE": 24.42217554048721,
+      "MAE": 2.216098807735731,
+      "MAPE": 78.07846028061185,
+      "WMAPE": 126.00490209928405,
+      "NbLignesTest": 2092984
+    },
+    "metriques_apres": {
+      "RMSE": 27.804983913041525,
+      "MAE": 3.036377749670357,
+      "MedAE": 0.18174855874657114,
+      "WMAPE": 1.3183476648154517,
+      "NbLignesValidation": 1565469,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE"
+    }
   }
 ]

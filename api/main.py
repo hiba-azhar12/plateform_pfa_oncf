@@ -90,19 +90,20 @@ async def declencher_reentrainement(cle_modele: str):
             detail=f"le processus de reentrainement a echoue (code {resultat.returncode}) : {resultat.stderr[-2000:]}",
         )
 
-    lignes = resultat.stdout.strip().splitlines()
-    json_trouve = None
-    for ligne in reversed(lignes):
-        ligne = ligne.strip()
-        if ligne.startswith("{"):
-            json_trouve = ligne
+    lignes = resultat.stdout.splitlines()
+    indice_ouverture = None
+    for indice in range(len(lignes) - 1, -1, -1):
+        if lignes[indice].strip() == "{":
+            indice_ouverture = indice
             break
 
-    if json_trouve is None:
+    if indice_ouverture is None:
         raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
 
+    bloc_json = "\n".join(lignes[indice_ouverture:])
+
     try:
-        return json.loads(json_trouve)
+        return json.loads(bloc_json)
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
 

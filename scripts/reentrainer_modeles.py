@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 import pandas as pd
+import psutil
 
 from config.chemins import HISTORIQUE, LOG_EXECUTION
 from config.modeles import LAGS, FENETRES_ROLLING, MODELES, chemin_fichier, chemin_modele
@@ -46,6 +47,10 @@ SPECIFICATIONS = {
 }
 
 
+def _afficher_ram(etiquette):
+    print(f"[RAM] {etiquette} : {round(psutil.Process().memory_info().rss / 1e9, 2)} Go", flush=True)
+
+
 def _chemin_historique(cle_modele):
     return os.path.join(HISTORIQUE, f"{cle_modele}.parquet")
 
@@ -64,19 +69,26 @@ def construire_table_entrainement(cle_modele, historique):
     groupe_liaison = colonnes_groupe_liaison(cle_modele)
     groupe_jour = colonnes_groupe_jour(cle_modele)
 
-    table = historique.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True)
-    table["JourSemaine"] = pd.to_datetime(table["Date"]).dt.dayofweek
+    _afficher_ram("debut construire_table_entrainement")
 
+    table = historique.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True)
+    _afficher_ram("apres sort_values")
+
+    table["JourSemaine"] = pd.to_datetime(table["Date"]).dt.dayofweek
     table["liaison_frequence"] = calculer_liaison_frequence(table, ["LiaisonId"])
+    _afficher_ram("apres liaison_frequence")
 
     toutes_cibles = traitement["completes"] + traitement["exogenes"]
     for nom_suffixe, colonne_valeur in toutes_cibles:
         table = calculer_lags(table, colonne_valeur, groupe_liaison, LAGS, nom_suffixe=nom_suffixe)
+        _afficher_ram(f"apres calculer_lags {nom_suffixe}")
         table = calculer_rolling(table, colonne_valeur, groupe_liaison, FENETRES_ROLLING, nom_suffixe=nom_suffixe)
+        _afficher_ram(f"apres calculer_rolling {nom_suffixe}")
 
     for nom_suffixe, colonne_valeur in traitement["completes"]:
         table[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(table, colonne_valeur, groupe_liaison)
         table[f"interaction_jour_liaison_{nom_suffixe}"] = calculer_interaction_jour(table, colonne_valeur, groupe_jour)
+    _afficher_ram("apres encodage et interaction")
 
     for nom_suffixe, colonne_valeur in traitement["exogenes"]:
         table[f"log_offset_{nom_suffixe}"] = np.log1p(table[colonne_valeur].clip(lower=0))
@@ -88,6 +100,7 @@ def construire_table_entrainement(cle_modele, historique):
     colonnes_calendaires = [c for c in calendaires.columns if c not in ("Date", "Heure")]
     table = table.reset_index(drop=True)
     table[colonnes_calendaires] = calendaires[colonnes_calendaires].reset_index(drop=True)
+    _afficher_ram("apres features calendaires")
 
     denominateur = info.get("cible_denominateur")
     if info["famille"] == "composition":
@@ -96,12 +109,12 @@ def construire_table_entrainement(cle_modele, historique):
         colonne_principale = traitement["completes"][0][1]
         table[info["cible"]] = table[colonne_principale] / table[denominateur].replace(0, np.nan)
 
+    _afficher_ram("fin construire_table_entrainement")
     return table
 
 
 def _encoder_liaison(cle_modele, table):
     info = MODELES[cle_modele]
-    table = table.copy()
     table["LiaisonId"] = table["LiaisonId"].astype(str)
 
     if info["format_modele"] == "catboost":
@@ -134,7 +147,12 @@ def _calculer_metriques(y_vrai, y_predit):
     y_vrai = np.asarray(y_vrai, dtype=float)
     y_predit = np.asarray(y_predit, dtype=float)
     erreur = y_vrai - y_predit
-    return {"RMSE": float(np.sqrt(np.mean(erreur ** 2))), "MAE": float(np.mean(np.abs(erreur)))}
+    rmse = float(np.sqrt(np.mean(erreur ** 2)))
+    mae = float(np.mean(np.abs(erreur)))
+    medae = float(np.median(np.abs(erreur)))
+    somme_absolue = float(np.sum(np.abs(y_vrai)))
+    wmape = float(np.sum(np.abs(erreur)) / somme_absolue) if somme_absolue > 0 else None
+    return {"RMSE": rmse, "MAE": mae, "MedAE": medae, "WMAPE": wmape, "NbLignesValidation": int(len(y_vrai))}
 
 
 def _normaliser_par_groupe(table, valeurs):
@@ -155,10 +173,14 @@ def _sous_echantillonner(train, taille_max):
 
 def _entrainer_catboost(x_train, y_train, x_valid, y_valid, loss_function):
     from catboost import CatBoostRegressor, Pool
+    _afficher_ram("avant Pool train")
     pool_train = Pool(x_train, y_train, cat_features=["LiaisonId"])
+    _afficher_ram("apres Pool train")
     pool_valid = Pool(x_valid, y_valid, cat_features=["LiaisonId"])
+    _afficher_ram("apres Pool valid")
     modele = CatBoostRegressor(loss_function=loss_function, **PARAMETRES_CATBOOST_BASE)
     modele.fit(pool_train, eval_set=pool_valid, use_best_model=True)
+    _afficher_ram("apres fit catboost")
     return modele
 
 
@@ -167,6 +189,7 @@ def _entrainer_lightgbm(x_train, y_train, x_valid, y_valid, objectif, params_sup
     parametres = dict(PARAMETRES_LIGHTGBM_BASE)
     parametres["objective"] = objectif
     parametres.update(params_supplementaires)
+    _afficher_ram("avant fit lightgbm")
     modele = lgb.LGBMRegressor(**parametres)
     if len(x_valid) >= 5:
         modele.fit(
@@ -175,6 +198,7 @@ def _entrainer_lightgbm(x_train, y_train, x_valid, y_valid, objectif, params_sup
         )
     else:
         modele.fit(x_train, y_train)
+    _afficher_ram("apres fit lightgbm")
     return modele
 
 
@@ -280,22 +304,29 @@ def reentrainer(cle_modele):
         return resultat
 
     historique = pd.read_parquet(chemin_historique)
+    _afficher_ram("apres lecture historique")
+
     table = construire_table_entrainement(cle_modele, historique)
+    del historique
     table = table.dropna(subset=[info["cible"]])
+    _afficher_ram("apres dropna cible")
+
     table, encodage = _encoder_liaison(cle_modele, table)
+    _afficher_ram("apres encoder_liaison")
 
     colonnes_attendues = json.load(open(chemin_fichier(cle_modele, "colonnes_features")))
     for colonne in colonnes_attendues:
         if colonne not in table.columns:
             table[colonne] = np.nan
     table = table.dropna(subset=colonnes_attendues)
+    _afficher_ram("apres dropna colonnes_attendues")
 
     if len(table) < 200:
         resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "echec", "erreur": "historique_insuffisant"}
         _ecrire_log(resultat)
         return resultat
 
-    colonnes_modele = ["LiaisonId_code" if c == "LiaisonId" and info["multi_categorie"] else c for c in colonnes_attendues]
+    colonnes_modele = colonnes_attendues
 
     anciennes_metriques = _metriques_actuelles(cle_modele)
 
@@ -303,6 +334,10 @@ def reentrainer(cle_modele):
         modeles, metriques_globales, nb_lignes = _entrainer_multi_categorie(cle_modele, table, colonnes_modele)
     else:
         modeles, metriques_globales, nb_lignes = _entrainer_simple(cle_modele, table, colonnes_modele)
+
+    if metriques_globales.get("RMSE") is not None:
+        metriques_globales["Cible"] = info["cible"]
+        metriques_globales["Modele"] = f"{info['libelle_court'].upper()} - REENTRAINEMENT AUTOMATIQUE"
 
     seuil_ancien = anciennes_metriques.get("RMSE") if anciennes_metriques else None
     accepte = seuil_ancien is None or metriques_globales.get("RMSE") is None or metriques_globales["RMSE"] <= seuil_ancien * TOLERANCE_REGRESSION
