@@ -102,11 +102,15 @@ def pivot_circulation(circulation):
 
 
 def construire_modele1(pivot_vente):
-    return pivot_vente.groupby(["Date", "Heure", "LiaisonId"], observed=True)["NbBillets"].sum().reset_index()
+    table = pivot_vente.groupby(["Date", "Heure", "LiaisonId"], observed=True)["NbBillets"].sum().reset_index()
+    table["Heure"] = table["Heure"].astype("int64")
+    return table
 
 
 def construire_modele3(pivot_controle):
-    return pivot_controle.groupby(["Date", "Heure", "LiaisonId"], observed=True)["NbControles"].sum().reset_index()
+    table = pivot_controle.groupby(["Date", "Heure", "LiaisonId"], observed=True)["NbControles"].sum().reset_index()
+    table["Heure"] = table["Heure"].astype("int64")
+    return table
 
 
 def construire_modele2(pivot_vente, pivot_circ):
@@ -155,28 +159,37 @@ def calculer_liaison_frequence(historique, colonnes_groupe):
     return historique.groupby(colonnes_groupe, observed=True)[colonnes_groupe[0]].transform("count")
 
 
-def calculer_lags(historique, colonne_cible, colonnes_groupe, lags, nom_suffixe=None):
+def ajouter_lags_rolling_calendaires(historique, colonne_cible, colonnes_groupe, lags, fenetres, nom_suffixe=None):
     suffixe = nom_suffixe or colonne_cible
-    historique = historique.sort_values(colonnes_groupe + ["Date"]).reset_index(drop=True)
-    groupe = historique.groupby(colonnes_groupe, observed=True)[colonne_cible]
-    for lag in lags:
-        historique[f"lag_{lag}_{suffixe}"] = groupe.shift(lag)
-    historique[f"{suffixe}_j_moins_1"] = groupe.shift(1)
-    return historique
+    colonnes_cles = colonnes_groupe + ["Date"]
 
+    dates_completes = pd.date_range(historique["Date"].min(), historique["Date"].max(), freq="D")
+    groupes_uniques = historique[colonnes_groupe].drop_duplicates()
+    squelette = groupes_uniques.merge(pd.DataFrame({"Date": dates_completes}), how="cross")
 
-def calculer_rolling(historique, colonne_cible, colonnes_groupe, fenetres, nom_suffixe=None):
-    suffixe = nom_suffixe or colonne_cible
+    dense = squelette.merge(historique[colonnes_cles + [colonne_cible]], on=colonnes_cles, how="left")
+    dense[colonne_cible] = dense[colonne_cible].fillna(0).astype("float32")
+    dense = dense.sort_values(colonnes_cles).reset_index(drop=True)
+
+    groupe = dense.groupby(colonnes_groupe, observed=True)[colonne_cible]
     colonne_decalee = f"{suffixe}_j_moins_1"
+    dense[colonne_decalee] = groupe.shift(1)
+    for lag in lags:
+        dense[f"lag_{lag}_{suffixe}"] = groupe.shift(lag)
+
     for fenetre in fenetres:
-        historique[f"rolling_mean_{fenetre}_{suffixe}"] = (
-            historique.groupby(colonnes_groupe, observed=True)[colonne_decalee]
-            .rolling(fenetre).mean().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
-        )
-        historique[f"rolling_std_{fenetre}_{suffixe}"] = (
-            historique.groupby(colonnes_groupe, observed=True)[colonne_decalee]
-            .rolling(fenetre).std().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
-        )
+        roulant = dense.groupby(colonnes_groupe, observed=True)[colonne_decalee]
+        dense[f"rolling_mean_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).mean().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
+        dense[f"rolling_std_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).std().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
+
+    colonnes_resultat = [f"lag_{lag}_{suffixe}" for lag in lags] + [colonne_decalee]
+    for fenetre in fenetres:
+        colonnes_resultat += [f"rolling_mean_{fenetre}_{suffixe}", f"rolling_std_{fenetre}_{suffixe}"]
+
+    dense_resultat = dense[colonnes_cles + colonnes_resultat].copy()
+    del dense
+    historique = historique.merge(dense_resultat, on=colonnes_cles, how="left")
+    del dense_resultat
     return historique
 
 

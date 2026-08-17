@@ -3,15 +3,15 @@ import os
 
 import numpy as np
 import pandas as pd
+import psutil
 
 from config.modeles import LAGS, FENETRES_ROLLING, MODELES, chemin_fichier, chemin_modele
 from utils.feature_engineering import (
+    ajouter_lags_rolling_calendaires,
     calculer_encodage_expanding,
     calculer_features_calendaires,
     calculer_interaction_jour,
-    calculer_lags,
     calculer_liaison_frequence,
-    calculer_rolling,
 )
 
 CIBLES_TRAITEMENT = {
@@ -23,6 +23,12 @@ CIBLES_TRAITEMENT = {
     "modele4_part_confort": {"completes": [("ventes", "NbBillets")], "exogenes": []},
     "modele7_part_type": {"completes": [("controles", "NbControles")], "exogenes": []},
 }
+
+FENETRE_LAGS_JOURS = 420
+
+
+def _afficher_ram(etiquette):
+    print(f"[RAM] {etiquette} : {round(psutil.Process().memory_info().rss / 1e9, 2)} Go", flush=True)
 
 
 def _lire_json(chemin):
@@ -102,6 +108,8 @@ def construire_features(cle_modele, date_cible, historique):
     groupe_liaison = colonnes_groupe_liaison(cle_modele)
     groupe_jour = colonnes_groupe_jour(cle_modele)
 
+    _afficher_ram(f"{cle_modele} - debut construire_features")
+
     lignes_base = generer_lignes_a_predire(cle_modele, date_cible, historique)
 
     frequences = calculer_liaison_frequence(historique, ["LiaisonId"])
@@ -118,14 +126,7 @@ def construire_features(cle_modele, date_cible, historique):
     historique_etendu = pd.concat([historique, lignes_base], ignore_index=True, sort=False)
     historique_etendu = historique_etendu.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True)
     historique_etendu["JourSemaine"] = pd.to_datetime(historique_etendu["Date"]).dt.dayofweek
-
-    for nom_suffixe, colonne_valeur in toutes_cibles:
-        historique_etendu = calculer_lags(
-            historique_etendu, colonne_valeur, groupe_liaison, LAGS, nom_suffixe=nom_suffixe
-        )
-        historique_etendu = calculer_rolling(
-            historique_etendu, colonne_valeur, groupe_liaison, FENETRES_ROLLING, nom_suffixe=nom_suffixe
-        )
+    _afficher_ram(f"{cle_modele} - apres concat historique complet")
 
     for nom_suffixe, colonne_valeur in traitement["completes"]:
         historique_etendu[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(
@@ -134,9 +135,22 @@ def construire_features(cle_modele, date_cible, historique):
         historique_etendu[f"interaction_jour_liaison_{nom_suffixe}"] = calculer_interaction_jour(
             historique_etendu, colonne_valeur, groupe_jour
         )
+    _afficher_ram(f"{cle_modele} - apres encodage et interaction (historique complet)")
 
-    masque_nouvelles_lignes = historique_etendu["Date"] == pd.Timestamp(date_cible)
-    table = historique_etendu[masque_nouvelles_lignes].copy()
+    date_limite = pd.Timestamp(date_cible) - pd.Timedelta(days=FENETRE_LAGS_JOURS)
+    fenetre_recente = historique_etendu[historique_etendu["Date"] >= date_limite].reset_index(drop=True)
+    del historique_etendu
+    _afficher_ram(f"{cle_modele} - apres restriction fenetre {FENETRE_LAGS_JOURS}j")
+
+    for nom_suffixe, colonne_valeur in toutes_cibles:
+        fenetre_recente = ajouter_lags_rolling_calendaires(
+            fenetre_recente, colonne_valeur, groupe_liaison, LAGS, FENETRES_ROLLING, nom_suffixe=nom_suffixe
+        )
+        _afficher_ram(f"{cle_modele} - apres lags_rolling_calendaires {nom_suffixe}")
+
+    masque_nouvelles_lignes = fenetre_recente["Date"] == pd.Timestamp(date_cible)
+    table = fenetre_recente[masque_nouvelles_lignes].copy()
+    del fenetre_recente
 
     if "Heure" in table.columns:
         table["Heure"] = table["Heure"].astype(int)
@@ -173,6 +187,7 @@ def construire_features(cle_modele, date_cible, historique):
     for colonne in colonnes_manquantes:
         table[colonne] = np.nan
 
+    _afficher_ram(f"{cle_modele} - fin construire_features")
     return table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues
 
 

@@ -1310,5 +1310,270 @@
       "Cible": "NbControles",
       "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE"
     }
+  },
+  {
+    "horodatage": "2026-08-16 19:45:42",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbControles",
+      "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1",
+      "RMSE": 24.42217554048721,
+      "MAE": 2.216098807735731,
+      "MAPE": 78.07846028061185,
+      "WMAPE": 126.00490209928405,
+      "NbLignesTest": 2092984
+    },
+    "metriques_apres": {
+      "RMSE": 24.24706808255073,
+      "MAE": 2.2963363745497887,
+      "MedAE": 0.12129475303770608,
+      "WMAPE": 1.3073351192576064,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-16 19:45:42",
+      "NbLignesEntrainement": 10321716
+    }
+  },
+  {
+    "horodatage": "2026-08-16 19:56:18",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbBillets",
+      "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE",
+      "RMSE": 5.993973531502185,
+      "MAE": 0.9591344043284944,
+      "NbLignesTest": 2092984
+    },
+    "metriques_apres": {
+      "RMSE": 5.976123164588057,
+      "MAE": 1.0418508164189293,
+      "MedAE": 0.17350563130997343,
+      "WMAPE": 0.6833255737778993,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbBillets",
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-16 19:56:18",
+      "NbLignesEntrainement": 5000000
+    }
+  },
+  {
+    "horodatage": "2026-08-16 20:09:06",
+    "type": "reentrainement",
+    "cle_modele": "modele5_taux_controle",
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "TauxControle",
+      "Modele": "MODELE 5 TAUX CONTROLE - CATBOOST TWEEDIE",
+      "RMSE": 0.11363049773392578,
+      "MAE": 0.07994027284919579,
+      "MedAE": 0.053557274872857386,
+      "WMAPE": 0.2913969668896036,
+      "TweedieVariancePower": 1.5,
+      "NbLignesTest": 28395
+    },
+    "metriques_apres": {
+      "RMSE": 0.11624473955359663,
+      "MAE": 0.0844189621211107,
+      "MedAE": 0.059467468239839755,
+      "WMAPE": 0.30560630817339574,
+      "NbLignesValidation": 27571,
+      "Cible": "TauxControle",
+      "Modele": "TAUX CONTR\u00d4LE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-16 20:09:06",
+      "NbLignesEntrainement": 106265
+    }
+  },
+  {
+    "horodatage": "2026-08-17 11:10:17",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 24.24706808255073,
+      "MAE": 2.2963363745497887,
+      "MedAE": 0.12129475303770608,
+      "WMAPE": 1.3073351192576064,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-16 19:45:42",
+      "NbLignesEntrainement": 10321716
+    },
+    "metriques_apres": {
+      "RMSE": 24.24706808255073,
+      "MAE": 2.2963363745497887,
+      "MedAE": 0.12129475303770608,
+      "WMAPE": 1.3073351192576064,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-17 11:10:17",
+      "NbLignesEntrainement": 10321716
+    },
+    "rmse_ancien_meme_periode": 24.24706808255073
+  },
+  {
+    "horodatage": "2026-08-17 11:21:08",
+    "statut": "erreur",
+    "erreur": "(\"Could not convert '11' with type str: tried to convert to int64\", 'Conversion failed for column Heure with type object')",
+    "trace": "Traceback (most recent call last):\n  File \"/workspaces/plateform_pfa_oncf/scripts/traiter_depot_quotidien.py\", line 294, in executer\n    resultat = traiter_date(date_a_traiter)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspaces/plateform_pfa_oncf/scripts/traiter_depot_quotidien.py\", line 236, in traiter_date\n    _mettre_a_jour_historique(cle_modele, lignes)\n  File \"/workspaces/plateform_pfa_oncf/scripts/traiter_depot_quotidien.py\", line 105, in _mettre_a_jour_historique\n    combine.to_parquet(chemin, index=False)\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pandas/core/frame.py\", line 3135, in to_parquet\n    return to_parquet(\n           ^^^^^^^^^^^\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pandas/io/parquet.py\", line 490, in to_parquet\n    impl.write(\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pandas/io/parquet.py\", line 191, in write\n    table = self.api.Table.from_pandas(df, **from_pandas_kwargs)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"pyarrow/table.pxi\", line 4768, in pyarrow.lib.Table.from_pandas\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pyarrow/pandas_compat.py\", line 664, in dataframe_to_arrays\n    arrays[i] = maybe_fut.result()\n                ^^^^^^^^^^^^^^^^^^\n  File \"/home/codespace/.python/current/lib/python3.12/concurrent/futures/_base.py\", line 449, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/home/codespace/.python/current/lib/python3.12/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/home/codespace/.python/current/lib/python3.12/concurrent/futures/thread.py\", line 58, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pyarrow/pandas_compat.py\", line 639, in convert_column\n    raise e\n  File \"/workspaces/plateform_pfa_oncf/.venv/lib/python3.12/site-packages/pyarrow/pandas_compat.py\", line 633, in convert_column\n    result = pa.array(col, type=type_, from_pandas=True, safe=safe)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"pyarrow/array.pxi\", line 390, in pyarrow.lib.array\n  File \"pyarrow/array.pxi\", line 91, in pyarrow.lib._ndarray_to_array\n  File \"pyarrow/error.pxi\", line 92, in pyarrow.lib.check_status\npyarrow.lib.ArrowInvalid: (\"Could not convert '11' with type str: tried to convert to int64\", 'Conversion failed for column Heure with type object')\n"
+  },
+  {
+    "horodatage": "2026-08-17 11:23:20",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 24.24706808255073,
+      "MAE": 2.2963363745497887,
+      "MedAE": 0.12129475303770608,
+      "WMAPE": 1.3073351192576064,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-17 11:10:17",
+      "NbLignesEntrainement": 10321716
+    },
+    "metriques_apres": {
+      "RMSE": 24.24706808255073,
+      "MAE": 2.2963363745497887,
+      "MedAE": 0.12129475303770608,
+      "WMAPE": 1.3073351192576064,
+      "NbLignesValidation": 2053690,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-17 11:23:20",
+      "NbLignesEntrainement": 10321716
+    },
+    "rmse_ancien_meme_periode": 24.24706808255073
+  },
+  {
+    "horodatage": "2026-08-17 12:17:21",
+    "statut": "succes_partiel",
+    "fichiers_traites": 3,
+    "date_traitee": "2025-11-01",
+    "date_predite": "2025-11-02",
+    "colonnes_manquantes": {},
+    "liaisons_inconnues": {
+      "modele2_taux_vente_guichet": [
+        "12427",
+        "13580",
+        "13900",
+        "13901",
+        "14376",
+        "14719",
+        "14796",
+        "14827",
+        "14838",
+        "14919",
+        "15038",
+        "15166",
+        "15518",
+        "15521",
+        "15558",
+        "15597",
+        "15616",
+        "15707",
+        "16955",
+        "16956",
+        "17341",
+        "18158",
+        "18247",
+        "18357",
+        "18480",
+        "18676",
+        "18688",
+        "18811",
+        "18825",
+        "18923",
+        "18994",
+        "19001",
+        "19243",
+        "19284",
+        "20410",
+        "21211",
+        "21217",
+        "21229",
+        "21235",
+        "21260",
+        "21292",
+        "21296",
+        "21422",
+        "21563",
+        "21571",
+        "21726",
+        "21729",
+        "22576",
+        "22664",
+        "23174",
+        "25936",
+        "26182",
+        "26187",
+        "26872",
+        "26883",
+        "29585",
+        "29615",
+        "8229"
+      ]
+    },
+    "erreurs_modeles": {
+      "modele1_ventes": "Invalid type for cat_feature[non-default value idx=46800,feature_idx=1]=nan : cat_features must be integer or string, real number values and NaN values should be converted to string.",
+      "modele4_part_confort": "'<' not supported between instances of 'float' and 'str'",
+      "modele3_controles": "'<' not supported between instances of 'float' and 'str'",
+      "modele5_taux_controle": "Invalid type for cat_feature[non-default value idx=2382,feature_idx=0]=nan : cat_features must be integer or string, real number values and NaN values should be converted to string.",
+      "modele6_taux_fraude": "'<' not supported between instances of 'float' and 'str'",
+      "modele7_part_type": "'<' not supported between instances of 'float' and 'str'"
+    }
+  },
+  {
+    "horodatage": "2026-08-17 12:29:23",
+    "type": "reentrainement",
+    "cle_modele": "modele4_part_confort",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.08694982238441,
+      "MAE": 0.03549498695762005,
+      "DateReentrainement": "2026-08-16 17:28:11",
+      "NbLignesEntrainement": 238878
+    },
+    "metriques_apres": {
+      "RMSE": 0.08610478583472508,
+      "MAE": 0.03425139378277417,
+      "MedAE": 0.017367794587304752,
+      "WMAPE": 0.059468685918208496,
+      "NbLignesValidation": 51948,
+      "Cible": "PartConfort",
+      "Modele": "PART CONFORT - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-17 12:29:23",
+      "NbLignesEntrainement": 256672
+    },
+    "rmse_ancien_meme_periode": 0.08913586497946847
+  },
+  {
+    "horodatage": "2026-08-17 12:34:49",
+    "statut": "succes_partiel",
+    "fichiers_traites": 3,
+    "date_traitee": "2025-11-02",
+    "date_predite": "2025-11-03",
+    "colonnes_manquantes": {},
+    "liaisons_inconnues": {
+      "modele4_part_confort": [
+        NaN
+      ]
+    },
+    "erreurs_modeles": {
+      "modele1_ventes": "Invalid type for cat_feature[non-default value idx=46800,feature_idx=1]=nan : cat_features must be integer or string, real number values and NaN values should be converted to string.",
+      "modele2_taux_vente_guichet": "You are trying to merge on int32 and str columns for key 'LiaisonId'. If you wish to proceed you should use pd.concat",
+      "modele4_part_confort": "(\"Expected bytes, got a 'int' object\", 'Conversion failed for column NiveauConfort with type object')",
+      "modele3_controles": "'<' not supported between instances of 'float' and 'str'",
+      "modele5_taux_controle": "Invalid type for cat_feature[non-default value idx=2382,feature_idx=0]=nan : cat_features must be integer or string, real number values and NaN values should be converted to string.",
+      "modele6_taux_fraude": "'<' not supported between instances of 'float' and 'str'",
+      "modele7_part_type": "'<' not supported between instances of 'float' and 'str'"
+    }
   }
 ]

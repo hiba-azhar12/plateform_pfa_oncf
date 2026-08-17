@@ -17,7 +17,6 @@ from config.chemins import (
     LOG_EXECUTION,
 )
 from config.modeles import MODELES, chemin_fichier
-from scripts.traiter_depot_quotidien import executer as executer_traitement_quotidien
 
 app = FastAPI(title="API Plateforme ONCF")
 
@@ -47,8 +46,18 @@ async def deposer_donnees(type_donnee: str, fichier: UploadFile):
 
 @app.post("/traiter-quotidien")
 async def traiter_quotidien():
-    executer_traitement_quotidien()
-    return {"statut": "traitement_lance"}
+    resultat = subprocess.run(
+        [sys.executable, "scripts/traiter_depot_quotidien.py"],
+        capture_output=True, text=True, timeout=1800,
+    )
+
+    if resultat.returncode != 0:
+        raise HTTPException(
+            status_code=500,
+            detail=f"le traitement quotidien a echoue (code {resultat.returncode}) : {resultat.stderr[-2000:]}",
+        )
+
+    return {"statut": "traitement_lance", "sortie": resultat.stdout[-2000:]}
 
 
 @app.get("/predictions/{cle_modele}")

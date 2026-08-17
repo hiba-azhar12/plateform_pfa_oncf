@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import re
@@ -9,6 +10,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
+import psutil
 
 from config.chemins import (
     COLONNES_ESSENTIELLES_CIRCULATION,
@@ -29,6 +31,10 @@ from utils.agregation import agreger_lot_quotidien
 from utils.inference import predire_nouvelle_date
 
 MOTIF_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
+def _afficher_ram(etiquette):
+    print(f"[RAM] {etiquette} : {round(psutil.Process().memory_info().rss / 1e9, 2)} Go", flush=True)
 
 
 def _dates_disponibles(dossier, prefixe):
@@ -90,13 +96,32 @@ def _chemin_historique(cle_modele):
     return os.path.join(HISTORIQUE, f"{cle_modele}.parquet")
 
 
+def _aligner_types(nouvelles_lignes, historique):
+    nouvelles_lignes = nouvelles_lignes.copy()
+    for colonne in nouvelles_lignes.columns:
+        if colonne not in historique.columns:
+            continue
+        dtype_historique = historique[colonne].dtype
+        if nouvelles_lignes[colonne].dtype == dtype_historique:
+            continue
+        if isinstance(dtype_historique, pd.CategoricalDtype):
+            continue
+        try:
+            nouvelles_lignes[colonne] = nouvelles_lignes[colonne].astype(dtype_historique)
+        except (ValueError, TypeError):
+            pass
+    return nouvelles_lignes
+
+
 def _mettre_a_jour_historique(cle_modele, nouvelles_lignes):
     chemin = _chemin_historique(cle_modele)
     os.makedirs(HISTORIQUE, exist_ok=True)
 
     if os.path.isfile(chemin):
         historique = pd.read_parquet(chemin)
+        nouvelles_lignes = _aligner_types(nouvelles_lignes, historique)
         combine = pd.concat([historique, nouvelles_lignes], ignore_index=True, sort=False)
+        del historique
     else:
         combine = nouvelles_lignes
 
@@ -229,11 +254,15 @@ def _ecrire_log(entree):
 
 
 def traiter_date(date_texte):
+    _afficher_ram("debut traiter_date")
     ventepda, controlepda, circulation, chemins = _charger_lot(date_texte)
     lots_agreges = agreger_lot_quotidien(ventepda, controlepda, circulation)
+    del ventepda, controlepda, circulation
+    _afficher_ram("apres agregation lot quotidien")
 
     for cle_modele, lignes in lots_agreges.items():
         _mettre_a_jour_historique(cle_modele, lignes)
+    _afficher_ram("apres mise a jour historique")
 
     date_courante = pd.Timestamp(date_texte)
     date_suivante = date_courante + timedelta(days=1)
@@ -257,10 +286,14 @@ def traiter_date(date_texte):
                 liaisons_inconnues_totales[cle_modele] = liaisons_inconnues
 
             _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction)
+            del historique, nouvelle_prediction, existantes
+            gc.collect()
+            _afficher_ram(f"{cle_modele} - fin boucle")
         except Exception as exception:
             erreurs_modeles[cle_modele] = str(exception)
 
     _archiver_fichiers(chemins)
+    _afficher_ram("fin traiter_date")
 
     return {
         "date_traitee": date_texte,

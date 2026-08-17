@@ -1,6 +1,11 @@
 {
-  "RMSE": 0.08694982238441,
-  "MAE": 0.03549498695762005,
-  "DateReentrainement": "2026-08-16 17:28:11",
-  "NbLignesEntrainement": 238878
+  "RMSE": 0.08610478583472508,
+  "MAE": 0.03425139378277417,
+  "MedAE": 0.017367794587304752,
+  "WMAPE": 0.059468685918208496,
+  "NbLignesValidation": 51948,
+  "Cible": "PartConfort",
+  "Modele": "PART CONFORT - REENTRAINEMENT AUTOMATIQUE",
+  "DateReentrainement": "2026-08-17 12:29:23",
+  "NbLignesEntrainement": 256672
 }

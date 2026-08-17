@@ -12,14 +12,19 @@ import psutil
 from config.chemins import HISTORIQUE, LOG_EXECUTION
 from config.modeles import LAGS, FENETRES_ROLLING, MODELES, chemin_fichier, chemin_modele
 from utils.feature_engineering import (
+    ajouter_lags_rolling_calendaires,
     calculer_encodage_expanding,
     calculer_features_calendaires,
     calculer_interaction_jour,
-    calculer_lags,
     calculer_liaison_frequence,
-    calculer_rolling,
 )
-from utils.inference import CIBLES_TRAITEMENT, colonnes_groupe_jour, colonnes_groupe_liaison
+from utils.inference import (
+    CIBLES_TRAITEMENT,
+    charger_modele_simple,
+    charger_modeles_categorie,
+    colonnes_groupe_jour,
+    colonnes_groupe_liaison,
+)
 
 TOLERANCE_REGRESSION = 1.1
 PART_VALIDATION = 0.15
@@ -80,10 +85,8 @@ def construire_table_entrainement(cle_modele, historique):
 
     toutes_cibles = traitement["completes"] + traitement["exogenes"]
     for nom_suffixe, colonne_valeur in toutes_cibles:
-        table = calculer_lags(table, colonne_valeur, groupe_liaison, LAGS, nom_suffixe=nom_suffixe)
-        _afficher_ram(f"apres calculer_lags {nom_suffixe}")
-        table = calculer_rolling(table, colonne_valeur, groupe_liaison, FENETRES_ROLLING, nom_suffixe=nom_suffixe)
-        _afficher_ram(f"apres calculer_rolling {nom_suffixe}")
+        table = ajouter_lags_rolling_calendaires(table, colonne_valeur, groupe_liaison, LAGS, FENETRES_ROLLING, nom_suffixe=nom_suffixe)
+        _afficher_ram(f"apres lags_rolling_calendaires {nom_suffixe}")
 
     for nom_suffixe, colonne_valeur in traitement["completes"]:
         table[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(table, colonne_valeur, groupe_liaison)
@@ -202,10 +205,9 @@ def _entrainer_lightgbm(x_train, y_train, x_valid, y_valid, objectif, params_sup
     return modele
 
 
-def _entrainer_simple(cle_modele, table, colonnes_features):
+def _entrainer_simple(cle_modele, table, colonnes_features, date_coupure):
     info = MODELES[cle_modele]
     specification = SPECIFICATIONS[cle_modele]
-    date_coupure = _dates_coupure(table)
     train, valid = _separer_train_validation(table, date_coupure)
     train = _sous_echantillonner(train, specification["taille_max"])
 
@@ -222,10 +224,9 @@ def _entrainer_simple(cle_modele, table, colonnes_features):
     return {"unique": modele}, metriques, len(train)
 
 
-def _entrainer_multi_categorie(cle_modele, table, colonnes_features):
+def _entrainer_multi_categorie(cle_modele, table, colonnes_features, date_coupure):
     info = MODELES[cle_modele]
     specification = SPECIFICATIONS[cle_modele]
-    date_coupure = _dates_coupure(table)
     categories = sorted(table[info["colonne_categorie"]].dropna().unique())
 
     modeles = {}
@@ -258,6 +259,41 @@ def _entrainer_multi_categorie(cle_modele, table, colonnes_features):
     predictions_normalisees = _normaliser_par_groupe(validation_complete, validation_complete["prediction_brute"].values)
     metriques = _calculer_metriques(validation_complete[info["cible"]], predictions_normalisees)
     return modeles, metriques, nb_lignes_train
+
+
+def _evaluer_ancien_modele_meme_periode(cle_modele, table, colonnes_features, date_coupure):
+    info = MODELES[cle_modele]
+    specification = SPECIFICATIONS[cle_modele]
+    _, valid = _separer_train_validation(table, date_coupure)
+
+    if specification["composition"]:
+        mapping_chemin = os.path.join(info["dossier"], info["mapping_modeles"])
+        if not os.path.isfile(mapping_chemin):
+            return None
+        modeles = charger_modeles_categorie(cle_modele)
+        parties = []
+        for categorie, modele in modeles.items():
+            sous_valid = valid[valid[info["colonne_categorie"]].astype(str) == str(categorie)]
+            if sous_valid.empty:
+                continue
+            predictions_brutes = np.clip(modele.predict(sous_valid[colonnes_features]), 0, None)
+            parties.append(sous_valid.assign(prediction_brute=predictions_brutes))
+        if not parties:
+            return None
+        validation_complete = pd.concat(parties)
+        predictions_normalisees = _normaliser_par_groupe(validation_complete, validation_complete["prediction_brute"].values)
+        metriques = _calculer_metriques(validation_complete[info["cible"]], predictions_normalisees)
+        return metriques["RMSE"]
+
+    if not os.path.isfile(chemin_modele(cle_modele)):
+        return None
+    if len(valid) == 0:
+        return None
+
+    modele = charger_modele_simple(cle_modele)
+    predictions = np.clip(modele.predict(valid[colonnes_features]), 0, None)
+    metriques = _calculer_metriques(valid[info["cible"]], predictions)
+    return metriques["RMSE"]
 
 
 def _sauvegarder_modele(chemin, modele, format_modele):
@@ -327,25 +363,31 @@ def reentrainer(cle_modele):
         return resultat
 
     colonnes_modele = colonnes_attendues
+    date_coupure = _dates_coupure(table)
 
     anciennes_metriques = _metriques_actuelles(cle_modele)
 
     if specification["composition"]:
-        modeles, metriques_globales, nb_lignes = _entrainer_multi_categorie(cle_modele, table, colonnes_modele)
+        modeles, metriques_globales, nb_lignes = _entrainer_multi_categorie(cle_modele, table, colonnes_modele, date_coupure)
     else:
-        modeles, metriques_globales, nb_lignes = _entrainer_simple(cle_modele, table, colonnes_modele)
+        modeles, metriques_globales, nb_lignes = _entrainer_simple(cle_modele, table, colonnes_modele, date_coupure)
 
     if metriques_globales.get("RMSE") is not None:
         metriques_globales["Cible"] = info["cible"]
         metriques_globales["Modele"] = f"{info['libelle_court'].upper()} - REENTRAINEMENT AUTOMATIQUE"
 
-    seuil_ancien = anciennes_metriques.get("RMSE") if anciennes_metriques else None
+    rmse_ancien_meme_periode = _evaluer_ancien_modele_meme_periode(cle_modele, table, colonnes_modele, date_coupure)
+    seuil_ancien = rmse_ancien_meme_periode
+    if seuil_ancien is None:
+        seuil_ancien = anciennes_metriques.get("RMSE") if anciennes_metriques else None
+
     accepte = seuil_ancien is None or metriques_globales.get("RMSE") is None or metriques_globales["RMSE"] <= seuil_ancien * TOLERANCE_REGRESSION
 
     if not accepte:
         resultat = {
             "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "rejete",
             "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
+            "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
         }
         _ecrire_log(resultat)
         return resultat
@@ -371,6 +413,7 @@ def reentrainer(cle_modele):
     resultat = {
         "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "deploye",
         "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
+        "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
     }
     _ecrire_log(resultat)
     return resultat
