@@ -1,11 +1,11 @@
 {
-  "RMSE": 0.05424051435356198,
-  "MAE": 0.03005386313661199,
-  "MedAE": 0.01598726332191633,
-  "WMAPE": 0.3994574496055946,
-  "NbLignesValidation": 8267,
+  "RMSE": 0.13187749278086303,
+  "MAE": 0.06978112234253897,
+  "MedAE": 0.06628500898698127,
+  "WMAPE": 0.8885223796754501,
+  "NbLignesValidation": 33723,
   "Cible": "TauxFraude",
   "Modele": "TAUX FRAUDE - REENTRAINEMENT AUTOMATIQUE",
-  "DateReentrainement": "2026-08-14 20:28:58",
-  "NbLignesEntrainement": 23034
+  "DateReentrainement": "2026-08-17 22:37:10",
+  "NbLignesEntrainement": 110996
 }

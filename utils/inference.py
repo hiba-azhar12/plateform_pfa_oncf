@@ -77,8 +77,10 @@ def generer_lignes_a_predire(cle_modele, date_cible, historique):
 
 def preparer_liaison_id(table, cle_modele, encodage):
     info = MODELES[cle_modele]
+    table = table.copy()
+    table["LiaisonId_reel"] = table["LiaisonId"].astype(str)
+
     if info["format_modele"] == "catboost":
-        table = table.copy()
         table["LiaisonId"] = table["LiaisonId"].map(str)
         return table, []
 
@@ -230,21 +232,28 @@ def predire(cle_modele, table_features, colonnes_attendues):
 
         if not parties:
             table_features["Prediction"] = np.nan
-            return table_features
+            resultat = table_features
+        else:
+            complet = pd.concat(parties).reset_index(drop=True)
+            sommes = complet.groupby(["Date", "LiaisonId"])["PredictionBrute"].transform("sum")
+            complet["Prediction"] = np.where(sommes > 0, complet["PredictionBrute"] / sommes, 0.0)
+            resultat = complet.drop(columns=["PredictionBrute"])
+    else:
+        modele = charger_modele_simple(cle_modele)
+        predictions = np.clip(modele.predict(table_features[colonnes_attendues]), 0, None)
 
-        complet = pd.concat(parties).reset_index(drop=True)
-        sommes = complet.groupby(["Date", "LiaisonId"])["PredictionBrute"].transform("sum")
-        complet["Prediction"] = np.where(sommes > 0, complet["PredictionBrute"] / sommes, 0.0)
-        return complet.drop(columns=["PredictionBrute"])
+        if info["famille"] == "taux":
+            predictions = np.clip(predictions, 0, 1)
 
-    modele = charger_modele_simple(cle_modele)
-    predictions = np.clip(modele.predict(table_features[colonnes_attendues]), 0, None)
+        resultat = table_features.copy()
+        resultat["Prediction"] = predictions
 
-    if info["famille"] == "taux":
-        predictions = np.clip(predictions, 0, 1)
+    if "LiaisonId_reel" in resultat.columns:
+        resultat["LiaisonId"] = resultat["LiaisonId_reel"]
+        resultat = resultat.drop(columns=["LiaisonId_reel"])
+    if "LiaisonId_code" in resultat.columns:
+        resultat = resultat.drop(columns=["LiaisonId_code"])
 
-    resultat = table_features.copy()
-    resultat["Prediction"] = predictions
     return resultat
 
 
