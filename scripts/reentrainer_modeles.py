@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -25,6 +24,7 @@ from utils.inference import (
     colonnes_groupe_jour,
     colonnes_groupe_liaison,
 )
+from utils.temps import horodatage_maroc
 
 TOLERANCE_REGRESSION = 1.1
 PART_VALIDATION = 0.15
@@ -331,7 +331,7 @@ def _ecrire_log(entree):
 def reentrainer(cle_modele):
     info = MODELES[cle_modele]
     specification = SPECIFICATIONS[cle_modele]
-    horodatage = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    horodatage = horodatage_maroc()
     chemin_historique = _chemin_historique(cle_modele)
 
     if not os.path.isfile(chemin_historique):

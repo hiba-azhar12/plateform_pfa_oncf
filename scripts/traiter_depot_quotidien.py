@@ -5,7 +5,7 @@ import re
 import shutil
 import sys
 import traceback
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -29,6 +29,7 @@ from config.chemins import (
 from config.modeles import MODELES
 from utils.agregation import agreger_lot_quotidien
 from utils.inference import predire_nouvelle_date
+from utils.temps import horodatage_maroc
 
 MOTIF_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
@@ -305,7 +306,7 @@ def traiter_date(date_texte):
 
 
 def executer():
-    horodatage = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _ecrire_log({"horodatage": horodatage_maroc(), "statut": "en_cours"})
 
     try:
         try:
@@ -318,7 +319,7 @@ def executer():
 
         if date_a_traiter is None:
             _ecrire_log({
-                "horodatage": horodatage,
+                "horodatage": horodatage_maroc(),
                 "statut": "aucune_donnee",
                 "fichiers_traites": 0,
             })
@@ -326,7 +327,7 @@ def executer():
 
         resultat = traiter_date(date_a_traiter)
         _ecrire_log({
-            "horodatage": horodatage,
+            "horodatage": horodatage_maroc(),
             "statut": "succes" if not resultat["erreurs_modeles"] else "succes_partiel",
             "fichiers_traites": 3,
             "date_traitee": resultat["date_traitee"],
@@ -338,7 +339,7 @@ def executer():
 
     except Exception as exception:
         _ecrire_log({
-            "horodatage": horodatage,
+            "horodatage": horodatage_maroc(),
             "statut": "erreur",
             "erreur": str(exception),
             "trace": traceback.format_exc(),

@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,6 +16,7 @@ from config.chemins import (
     LOG_EXECUTION,
 )
 from config.modeles import MODELES, chemin_fichier
+from utils.temps import horodatage_maroc
 
 app = FastAPI(title="API Plateforme ONCF")
 
@@ -29,7 +29,7 @@ DOSSIERS_DEPOT = {
 
 @app.get("/sante")
 async def verifier_sante():
-    return {"statut": "ok", "heure": datetime.now().isoformat()}
+    return {"statut": "ok", "heure": horodatage_maroc()}
 
 
 @app.post("/deposer-donnees/{type_donnee}")
@@ -46,18 +46,8 @@ async def deposer_donnees(type_donnee: str, fichier: UploadFile):
 
 @app.post("/traiter-quotidien")
 async def traiter_quotidien():
-    resultat = subprocess.run(
-        [sys.executable, "scripts/traiter_depot_quotidien.py"],
-        capture_output=True, text=True, timeout=1800,
-    )
-
-    if resultat.returncode != 0:
-        raise HTTPException(
-            status_code=500,
-            detail=f"le traitement quotidien a echoue (code {resultat.returncode}) : {resultat.stderr[-2000:]}",
-        )
-
-    return {"statut": "traitement_lance", "sortie": resultat.stdout[-2000:]}
+    subprocess.Popen([sys.executable, "scripts/traiter_depot_quotidien.py"], start_new_session=True)
+    return {"statut": "traitement_lance", "horodatage": horodatage_maroc()}
 
 
 @app.get("/predictions/{cle_modele}")

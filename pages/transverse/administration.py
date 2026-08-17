@@ -1,8 +1,11 @@
+import time
+
 import requests
 import streamlit as st
 
 from config.modeles import MODELES
 from utils.chargement import charger_log_execution, dernier_log_execution
+from utils.temps import horodatage_maroc
 
 URL_API = "http://localhost:8000"
 
@@ -29,9 +32,45 @@ else:
     colonne2.metric("Statut", dernier.get("statut", "—"))
     colonne3.metric("Date traitée", dernier.get("date_traitee", "—"))
 
-if st.button("Forcer le traitement maintenant", disabled=not api_active):
-    resultat = requests.post(f"{URL_API}/traiter-quotidien", timeout=120)
-    st.write(resultat.json())
+if st.button("Forcer le traitement"):
+    horodatage_avant = horodatage_maroc()
+    try:
+        requests.post(f"{URL_API}/traiter-quotidien", timeout=10)
+    except requests.exceptions.RequestException as exception:
+        st.error(f"Impossible de declencher le traitement : {exception}")
+    else:
+        resultat_final = None
+        with st.spinner("Traitement en cours..."):
+            delai_maximum = 1500
+            intervalle = 3
+            temps_ecoule = 0
+
+            while temps_ecoule < delai_maximum:
+                time.sleep(intervalle)
+                temps_ecoule += intervalle
+
+                try:
+                    reponse = requests.get(f"{URL_API}/etat-pipeline", timeout=10)
+                    journal = reponse.json()
+                except requests.exceptions.RequestException:
+                    continue
+
+                nouvelles_entrees = [
+                    entree for entree in journal
+                    if entree.get("horodatage", "") > horodatage_avant and entree.get("statut") != "en_cours"
+                ]
+
+                if nouvelles_entrees:
+                    resultat_final = nouvelles_entrees[-1]
+                    break
+
+        if resultat_final is None:
+            st.warning("Le traitement met plus de temps que prevu. Verifie l'onglet etat du pipeline plus tard.")
+        elif resultat_final["statut"] == "erreur":
+            st.error(f"Le traitement a echoue : {resultat_final.get('erreur')}")
+        else:
+            st.success("Traitement termine.")
+            st.json(resultat_final)
 
 st.subheader("État des réentraînements")
 journal = charger_log_execution()
