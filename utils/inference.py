@@ -79,7 +79,7 @@ def preparer_liaison_id(table, cle_modele, encodage):
     info = MODELES[cle_modele]
     if info["format_modele"] == "catboost":
         table = table.copy()
-        table["LiaisonId"] = table["LiaisonId"].astype(str)
+        table["LiaisonId"] = table["LiaisonId"].map(str)
         return table, []
 
     if encodage.empty or "LiaisonId" not in encodage.columns:

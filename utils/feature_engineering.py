@@ -65,8 +65,9 @@ def marquer_fraude(controlepda):
 def pivot_ventes(ventepda):
     ventepda = ventepda.copy()
     ventepda["Date"] = pd.to_datetime(ventepda["Date"])
-    ventepda["LiaisonId"] = ventepda["LiaisonId"].astype(str)
+    ventepda["LiaisonId"] = ventepda["LiaisonId"].map(str)
     ventepda["Heure"] = ventepda["Heure"].astype(str)
+    ventepda["NiveauConfort"] = ventepda["NiveauConfort"].map(str)
     agrege = (
         ventepda.groupby(["Date", "Heure", "LiaisonId", "NiveauConfort"], observed=True)
         .agg(NbBillets=("NumBillet", "count"))
@@ -78,7 +79,7 @@ def pivot_ventes(ventepda):
 def pivot_controles(controlepda):
     controlepda = marquer_fraude(controlepda)
     controlepda["Date"] = pd.to_datetime(controlepda["Date"])
-    controlepda["LiaisonId"] = controlepda["LiaisonId"].astype(str)
+    controlepda["LiaisonId"] = controlepda["LiaisonId"].map(str)
     controlepda["Heure"] = controlepda["Heure"].astype(str)
     agrege = (
         controlepda.groupby(["Date", "Heure", "LiaisonId", "TypeTitre"], observed=True)
@@ -91,7 +92,7 @@ def pivot_controles(controlepda):
 def pivot_circulation(circulation):
     circulation = circulation.copy()
     circulation["Date"] = pd.to_datetime(circulation["DateCirculation"])
-    circulation["LiaisonId"] = circulation["LiaisonId"].astype(str)
+    circulation["LiaisonId"] = circulation["LiaisonId"].map(str)
     circulation["Heure"] = circulation["Heure"].astype(str)
     agrege = (
         circulation.groupby(["Date", "Heure", "LiaisonId"], observed=True)

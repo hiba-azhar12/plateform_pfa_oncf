@@ -26,6 +26,26 @@ DOSSIERS_DEPOT = {
     "circulation": DEPOT_QUOTIDIEN_CIRCULATION,
 }
 
+import math
+
+
+def _nettoyer_nan(objet):
+    if isinstance(objet, float) and math.isnan(objet):
+        return None
+    if isinstance(objet, dict):
+        return {cle: _nettoyer_nan(valeur) for cle, valeur in objet.items()}
+    if isinstance(objet, list):
+        return [_nettoyer_nan(valeur) for valeur in objet]
+    return objet
+
+
+@app.get("/etat-pipeline")
+async def etat_pipeline():
+    if not os.path.isfile(LOG_EXECUTION):
+        return []
+    with open(LOG_EXECUTION, "r") as fichier:
+        journal = json.load(fichier)
+    return _nettoyer_nan(journal)
 
 @app.get("/sante")
 async def verifier_sante():
