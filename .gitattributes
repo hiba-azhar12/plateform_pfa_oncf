@@ -3,3 +3,4 @@ data/**/*.joblib filter=lfs diff=lfs merge=lfs -text
 data/**/*.h5 filter=lfs diff=lfs merge=lfs -text
 data/**/anomalies*.csv filter=lfs diff=lfs merge=lfs -text
 data/**/predictions_test.csv filter=lfs diff=lfs merge=lfs -text
+data/**/*.csv filter=lfs diff=lfs merge=lfs -text

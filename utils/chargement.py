@@ -80,25 +80,41 @@ def charger_encodage_liaison(cle_modele):
     return charger_csv(cle_modele, "encodage_liaison")
 
 
+def _liaisons_propres(colonne):
+    """Convertit une colonne LiaisonId en liste de str triable, en filtrant
+    les valeurs manquantes et en forçant explicitement le type via map(str)
+    (plus robuste que .astype(str) face aux NaN/valeurs mixtes)."""
+    valeurs = colonne.dropna().map(str).unique().tolist()
+    return sorted(valeurs, key=str)
+
+
 def liste_liaisons(cle_modele):
-    encodage = charger_encodage_liaison(cle_modele)
-    if encodage.empty or "LiaisonId" not in encodage.columns:
-        historique = charger_historique(cle_modele)
-        if historique.empty or "LiaisonId" not in historique.columns:
-            return []
-        return sorted(historique["LiaisonId"].astype(str).unique().tolist())
-    return sorted(encodage["LiaisonId"].astype(str).unique().tolist())
+    try:
+        encodage = charger_encodage_liaison(cle_modele)
+        if encodage.empty or "LiaisonId" not in encodage.columns:
+            historique = charger_historique(cle_modele)
+            if historique.empty or "LiaisonId" not in historique.columns:
+                return []
+            return _liaisons_propres(historique["LiaisonId"])
+        return _liaisons_propres(encodage["LiaisonId"])
+    except Exception:
+        # Un modele avec des donnees corrompues ne doit pas faire planter
+        # toute la page chatbot (qui boucle sur tous les modeles).
+        return []
 
 
 def liste_categories(cle_modele):
-    info = MODELES[cle_modele]
-    if not info["multi_categorie"]:
+    try:
+        info = MODELES[cle_modele]
+        if not info["multi_categorie"]:
+            return []
+        historique = charger_historique(cle_modele)
+        colonne = info["colonne_categorie"]
+        if historique.empty or colonne not in historique.columns:
+            return []
+        return _liaisons_propres(historique[colonne])
+    except Exception:
         return []
-    historique = charger_historique(cle_modele)
-    colonne = info["colonne_categorie"]
-    if historique.empty or colonne not in historique.columns:
-        return []
-    return sorted(historique[colonne].astype(str).unique().tolist())
 
 
 def modele_dispose_de_donnees(cle_modele):

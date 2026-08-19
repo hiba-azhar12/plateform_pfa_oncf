@@ -3307,5 +3307,126 @@
       ]
     },
     "erreurs_modeles": {}
+  },
+  {
+    "horodatage": "2026-08-19 21:34:51",
+    "statut": "en_cours"
+  },
+  {
+    "horodatage": "2026-08-19 21:45:01",
+    "statut": "succes",
+    "fichiers_traites": 3,
+    "date_traitee": "2025-11-05",
+    "date_predite": "2025-11-06",
+    "colonnes_manquantes": {},
+    "liaisons_inconnues": {
+      "modele4_part_confort": [
+        "nan"
+      ],
+      "modele3_controles": [
+        "nan"
+      ],
+      "modele6_taux_fraude": [
+        "nan"
+      ],
+      "modele7_part_type": [
+        "12403",
+        "13447",
+        "13580",
+        "13900",
+        "13901",
+        "14376",
+        "14719",
+        "14796",
+        "14827",
+        "15166",
+        "15386",
+        "15518",
+        "15521",
+        "15558",
+        "15597",
+        "15616",
+        "15707",
+        "15843",
+        "16955",
+        "16956",
+        "17021",
+        "17341",
+        "17968",
+        "18158",
+        "18247",
+        "18357",
+        "18480",
+        "18510",
+        "18648",
+        "18688",
+        "18798",
+        "18825",
+        "18838",
+        "18923",
+        "18994",
+        "19001",
+        "19243",
+        "19284",
+        "20410",
+        "20730",
+        "21211",
+        "21217",
+        "21229",
+        "21235",
+        "21254",
+        "21292",
+        "21296",
+        "21380",
+        "21391",
+        "21563",
+        "21571",
+        "21726",
+        "21729",
+        "22664",
+        "23174",
+        "25936",
+        "26182",
+        "26187",
+        "26404",
+        "26694",
+        "26872",
+        "26883",
+        "29585",
+        "29615",
+        "8229",
+        "nan"
+      ]
+    },
+    "erreurs_modeles": {}
+  },
+  {
+    "horodatage": "2026-08-19 21:45:31",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 5.837086224694759,
+      "MAE": 1.0117254173015715,
+      "MedAE": 0.07343938149998874,
+      "WMAPE": 0.6113143075670693,
+      "NbLignesValidation": 2052440,
+      "Cible": "NbBillets",
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-19 20:03:13",
+      "NbLignesEntrainement": 5000000
+    },
+    "metriques_apres": {
+      "RMSE": 5.837086224694759,
+      "MAE": 1.0117254173015715,
+      "MedAE": 0.07343938149998874,
+      "WMAPE": 0.6113143075670693,
+      "NbLignesValidation": 2052440,
+      "Cible": "NbBillets",
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-19 21:45:31",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 5.837086224694759
   }
 ]

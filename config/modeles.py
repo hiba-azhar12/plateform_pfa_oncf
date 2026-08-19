@@ -17,7 +17,8 @@ FICHIERS_COMMUNS = {
 }
 
 
-def _fichiers(predictions, historique, anomalies, comparaison=None, calendrier=None):
+def _fichiers(predictions, historique, anomalies, comparaison=None, calendrier=None,
+               importance_features=None, importance_shap=None):
     fichiers = dict(FICHIERS_COMMUNS)
     fichiers["predictions"] = predictions
     fichiers["historique"] = historique
@@ -26,6 +27,10 @@ def _fichiers(predictions, historique, anomalies, comparaison=None, calendrier=N
         fichiers["comparaison_inter_annees"] = comparaison
     if calendrier is not None:
         fichiers["calendrier_quotidien"] = calendrier
+    if importance_features is not None:
+        fichiers["importance_features"] = importance_features
+    if importance_shap is not None:
+        fichiers["importance_shap"] = importance_shap
     return fichiers
 
 
@@ -77,6 +82,7 @@ MODELES = {
         "fichiers": _fichiers(
             "predictions_test_confort.parquet", "historique_brut_confort.parquet", "anomalies_confort.csv",
             comparaison="comparaison_inter_annees_confort.csv", calendrier="calendrier_quotidien_confort.csv",
+            importance_features="importance_features_confort.csv", importance_shap="importance_shap_confort.csv",
         ),
     },
     "modele3_controles": {
@@ -141,6 +147,7 @@ MODELES = {
         "fichiers": _fichiers(
             "predictions_test_type.parquet", "historique_brut_type.parquet", "anomalies_type.csv",
             comparaison="comparaison_inter_annees_type.csv", calendrier="calendrier_quotidien_type.csv",
+            importance_features="importance_features_type.csv", importance_shap="importance_shap_type.csv",
         ),
     },
 }
