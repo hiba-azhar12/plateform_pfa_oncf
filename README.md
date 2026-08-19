@@ -140,6 +140,8 @@ chmod +x scripts/lancer_api.sh
 ./scripts/lancer_api.sh
 free -h
 python scripts/traiter_depot_quotidien.py
+python3 scripts/reentrainer_models.py
+python3 scripts/reentrainer_modeles.py --modele modele1_ventes
 ```
 
 ## 9. Calendrier marocain à maintenir chaque année

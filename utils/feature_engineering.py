@@ -160,37 +160,65 @@ def calculer_liaison_frequence(historique, colonnes_groupe):
     return historique.groupby(colonnes_groupe, observed=True)[colonnes_groupe[0]].transform("count")
 
 
-def ajouter_lags_rolling_calendaires(historique, colonne_cible, colonnes_groupe, lags, fenetres, nom_suffixe=None):
-    suffixe = nom_suffixe or colonne_cible
-    colonnes_cles = colonnes_groupe + ["Date"]
+TAILLE_LOT_GROUPES = 4000
 
-    dates_completes = pd.date_range(historique["Date"].min(), historique["Date"].max(), freq="D")
-    groupes_uniques = historique[colonnes_groupe].drop_duplicates()
-    squelette = groupes_uniques.merge(pd.DataFrame({"Date": dates_completes}), how="cross")
 
-    dense = squelette.merge(historique[colonnes_cles + [colonne_cible]], on=colonnes_cles, how="left")
+def _dense_lags_rolling_lot(historique, colonnes_cles, colonnes_groupe, colonne_cible, colonne_decalee, lags, fenetres, suffixe, lot_groupes, dates_completes):
+    squelette = lot_groupes.merge(pd.DataFrame({"Date": dates_completes}), how="cross")
+    lot_historique = historique.merge(lot_groupes, on=colonnes_groupe, how="inner")
+
+    dense = squelette.merge(lot_historique[colonnes_cles + [colonne_cible]], on=colonnes_cles, how="left")
+    del squelette, lot_historique
     dense[colonne_cible] = dense[colonne_cible].fillna(0).astype("float32")
     dense = dense.sort_values(colonnes_cles).reset_index(drop=True)
 
     groupe = dense.groupby(colonnes_groupe, observed=True)[colonne_cible]
-    colonne_decalee = f"{suffixe}_j_moins_1"
     dense[colonne_decalee] = groupe.shift(1)
     for lag in lags:
         dense[f"lag_{lag}_{suffixe}"] = groupe.shift(lag)
 
     for fenetre in fenetres:
         roulant = dense.groupby(colonnes_groupe, observed=True)[colonne_decalee]
-        dense[f"rolling_mean_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).mean().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
-        dense[f"rolling_std_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).std().reset_index(level=list(range(len(colonnes_groupe))), drop=True)
+        dense[f"rolling_mean_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).mean().reset_index(level=list(range(len(colonnes_groupe))), drop=True).astype("float32")
+        dense[f"rolling_std_{fenetre}_{suffixe}"] = roulant.rolling(fenetre).std().reset_index(level=list(range(len(colonnes_groupe))), drop=True).astype("float32")
 
     colonnes_resultat = [f"lag_{lag}_{suffixe}" for lag in lags] + [colonne_decalee]
     for fenetre in fenetres:
         colonnes_resultat += [f"rolling_mean_{fenetre}_{suffixe}", f"rolling_std_{fenetre}_{suffixe}"]
 
-    dense_resultat = dense[colonnes_cles + colonnes_resultat].copy()
+    resultat_lot = dense[colonnes_cles + colonnes_resultat].copy()
     del dense
-    historique = historique.merge(dense_resultat, on=colonnes_cles, how="left")
-    del dense_resultat
+    return resultat_lot
+
+
+def ajouter_lags_rolling_calendaires(historique, colonne_cible, colonnes_groupe, lags, fenetres, nom_suffixe=None, taille_lot=TAILLE_LOT_GROUPES):
+    suffixe = nom_suffixe or colonne_cible
+    colonnes_cles = colonnes_groupe + ["Date"]
+    colonne_decalee = f"{suffixe}_j_moins_1"
+
+    colonnes_resultat = [f"lag_{lag}_{suffixe}" for lag in lags] + [colonne_decalee]
+    for fenetre in fenetres:
+        colonnes_resultat += [f"rolling_mean_{fenetre}_{suffixe}", f"rolling_std_{fenetre}_{suffixe}"]
+
+    dates_completes = pd.date_range(historique["Date"].min(), historique["Date"].max(), freq="D")
+    groupes_uniques = historique[colonnes_groupe].drop_duplicates().reset_index(drop=True)
+
+    historique = historique.set_index(colonnes_cles, drop=False)
+    historique.index.names = [f"_idx_{colonne}" for colonne in colonnes_cles]
+    for colonne in colonnes_resultat:
+        historique[colonne] = np.float32(np.nan)
+
+    for debut in range(0, len(groupes_uniques), taille_lot):
+        lot_groupes = groupes_uniques.iloc[debut:debut + taille_lot]
+        resultat_lot = _dense_lags_rolling_lot(
+            historique, colonnes_cles, colonnes_groupe, colonne_cible, colonne_decalee,
+            lags, fenetres, suffixe, lot_groupes, dates_completes,
+        )
+        resultat_lot = resultat_lot.set_index(colonnes_cles)
+        historique.update(resultat_lot)
+        del resultat_lot
+
+    historique = historique.reset_index(drop=True)
     return historique
 
 

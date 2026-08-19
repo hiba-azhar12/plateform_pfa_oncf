@@ -106,7 +106,7 @@ def _aligner_types(nouvelles_lignes, historique):
         if nouvelles_lignes[colonne].dtype == dtype_historique:
             continue
         if isinstance(dtype_historique, pd.CategoricalDtype):
-            continue
+            continue  # recategorise apres concat dans _mettre_a_jour_historique
         try:
             nouvelles_lignes[colonne] = nouvelles_lignes[colonne].astype(dtype_historique)
         except (ValueError, TypeError):
@@ -118,8 +118,13 @@ def _mettre_a_jour_historique(cle_modele, nouvelles_lignes):
     chemin = _chemin_historique(cle_modele)
     os.makedirs(HISTORIQUE, exist_ok=True)
 
+    colonnes_categorielles = []
     if os.path.isfile(chemin):
         historique = pd.read_parquet(chemin)
+        colonnes_categorielles = [
+            colonne for colonne in historique.columns
+            if isinstance(historique[colonne].dtype, pd.CategoricalDtype)
+        ]
         nouvelles_lignes = _aligner_types(nouvelles_lignes, historique)
         combine = pd.concat([historique, nouvelles_lignes], ignore_index=True, sort=False)
         del historique
@@ -128,6 +133,10 @@ def _mettre_a_jour_historique(cle_modele, nouvelles_lignes):
 
     cles = _cles_grain(cle_modele)
     combine = combine.drop_duplicates(subset=cles, keep="last").sort_values(cles)
+
+    for colonne in colonnes_categorielles:
+        combine[colonne] = combine[colonne].astype(str).astype("category")
+
     combine.to_parquet(chemin, index=False)
     return combine
 

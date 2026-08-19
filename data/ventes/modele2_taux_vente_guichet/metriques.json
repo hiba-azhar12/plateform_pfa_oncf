@@ -1,6 +1,11 @@
 {
-  "RMSE": 0.06640032014507616,
-  "MAE": 0.048926779391625104,
-  "DateReentrainement": "2026-08-16 17:47:32",
-  "NbLignesEntrainement": 106900
+  "RMSE": 0.12594591222975263,
+  "MAE": 0.10769556632802718,
+  "MedAE": 0.10052183569616474,
+  "WMAPE": 0.36048996771654845,
+  "NbLignesValidation": 35829,
+  "Cible": "TauxVenteGuichet",
+  "Modele": "TAUX VENTE GUICHET - REENTRAINEMENT AUTOMATIQUE",
+  "DateReentrainement": "2026-08-19 14:01:06",
+  "NbLignesEntrainement": 113023
 }

@@ -1,11 +1,11 @@
 {
-  "RMSE": 5.976123164588057,
-  "MAE": 1.0418508164189293,
-  "MedAE": 0.17350563130997343,
-  "WMAPE": 0.6833255737778993,
-  "NbLignesValidation": 2053690,
+  "RMSE": 5.837086224694759,
+  "MAE": 1.0117254173015715,
+  "MedAE": 0.07343938149998874,
+  "WMAPE": 0.6113143075670693,
+  "NbLignesValidation": 2052440,
   "Cible": "NbBillets",
   "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE",
-  "DateReentrainement": "2026-08-16 19:56:18",
+  "DateReentrainement": "2026-08-19 20:03:13",
   "NbLignesEntrainement": 5000000
 }

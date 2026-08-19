@@ -1,11 +1,11 @@
 {
-  "RMSE": 24.24706808255073,
-  "MAE": 2.2963363745497887,
-  "MedAE": 0.12129475303770608,
-  "WMAPE": 1.3073351192576064,
-  "NbLignesValidation": 2053690,
+  "RMSE": 23.734623658433943,
+  "MAE": 2.2295854888675635,
+  "MedAE": 0.05050678903569123,
+  "WMAPE": 1.2055361204128112,
+  "NbLignesValidation": 2089237,
   "Cible": "NbControles",
   "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
-  "DateReentrainement": "2026-08-17 11:23:20",
-  "NbLignesEntrainement": 10321716
+  "DateReentrainement": "2026-08-19 20:28:54",
+  "NbLignesEntrainement": 10470085
 }
