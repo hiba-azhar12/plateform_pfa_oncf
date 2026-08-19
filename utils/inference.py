@@ -49,7 +49,12 @@ def charger_colonnes_features(cle_modele):
 
 
 def charger_encodage(cle_modele):
-    return _lire_csv(chemin_fichier(cle_modele, "encodage_liaison"))
+    encodage = _lire_csv(chemin_fichier(cle_modele, "encodage_liaison"))
+    if not encodage.empty and "LiaisonId" in encodage.columns:
+        encodage["LiaisonId"] = (
+            encodage["LiaisonId"].astype(str).str.replace(r"\.0$", "", regex=True)
+        )
+    return encodage
 
 
 def colonnes_groupe_liaison(cle_modele):
