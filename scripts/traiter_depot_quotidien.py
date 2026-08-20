@@ -226,6 +226,24 @@ def _reconcilier(cle_modele, date_texte, valeurs_observees):
     return existantes
 
 
+def _cles_dedoublonnage(cle_modele, table):
+    info = MODELES[cle_modele]
+    cles = ["Date", "LiaisonId"]
+    if info["granularite"] == "horaire":
+        cles.append("Heure")
+    if info["famille"] == "composition" and info["colonne_categorie"] in table.columns:
+        cles.append(info["colonne_categorie"])
+    return cles
+
+
+def _ecrire_predictions_nouvelles(cle_modele, table):
+    cles = _cles_dedoublonnage(cle_modele, table)
+    table = table.drop_duplicates(subset=cles, keep="last").sort_values(cles)
+    os.makedirs(PREDICTIONS_NOUVELLES, exist_ok=True)
+    table.to_parquet(_chemin_predictions_nouvelles(cle_modele), index=False)
+    return table
+
+
 def _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction):
     info = MODELES[cle_modele]
     nouvelle_prediction = nouvelle_prediction.copy()
@@ -245,17 +263,7 @@ def _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction):
     else:
         combine = pd.concat([existantes, nouvelle_prediction], ignore_index=True, sort=False)
 
-    cles = ["Date", "LiaisonId"]
-    if info["granularite"] == "horaire":
-        cles.append("Heure")
-    if info["famille"] == "composition" and info["colonne_categorie"] in combine.columns:
-        cles.append(info["colonne_categorie"])
-
-    combine = combine.drop_duplicates(subset=cles, keep="last").sort_values(cles)
-
-    os.makedirs(PREDICTIONS_NOUVELLES, exist_ok=True)
-    combine.to_parquet(_chemin_predictions_nouvelles(cle_modele), index=False)
-    return combine
+    return _ecrire_predictions_nouvelles(cle_modele, combine)
 
 
 def _archiver_fichiers(chemins):
@@ -303,10 +311,16 @@ def traiter_date(date_texte):
     erreurs_modeles = {}
 
     for cle_modele in MODELES:
+        existantes = None
+        try:
+            existantes = _reconcilier(cle_modele, date_texte, lots_agreges[cle_modele])
+            existantes = _ecrire_predictions_nouvelles(cle_modele, existantes)
+        except Exception as exception:
+            erreurs_modeles[cle_modele] = f"reconciliation : {exception}"
+            continue
+
         try:
             historique = pd.read_parquet(_chemin_historique(cle_modele))
-
-            existantes = _reconcilier(cle_modele, date_texte, lots_agreges[cle_modele])
 
             nouvelle_prediction, colonnes_manquantes, liaisons_inconnues = predire_nouvelle_date(
                 cle_modele, date_suivante, historique
@@ -317,11 +331,14 @@ def traiter_date(date_texte):
                 liaisons_inconnues_totales[cle_modele] = liaisons_inconnues
 
             _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction)
-            del historique, nouvelle_prediction, existantes
+            del historique, nouvelle_prediction
             gc.collect()
             _afficher_ram(f"{cle_modele} - fin boucle")
         except Exception as exception:
-            erreurs_modeles[cle_modele] = str(exception)
+            erreurs_modeles[cle_modele] = f"prediction : {exception}"
+        finally:
+            del existantes
+            gc.collect()
 
     _archiver_fichiers(chemins)
     _afficher_ram("fin traiter_date")
