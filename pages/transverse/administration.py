@@ -69,7 +69,10 @@ if st.button("Forcer le traitement"):
         elif resultat_final["statut"] == "erreur":
             st.error(f"Le traitement a echoue : {resultat_final.get('erreur')}")
         else:
-            st.success("Traitement termine.")
+            st.cache_data.clear()
+            st.success("Traitement termine. Les pages Nouvelles Predictions et Dashboard affichent maintenant les donnees a jour.")
+            if resultat_final.get("alerte_continuite"):
+                st.warning(resultat_final["alerte_continuite"])
             st.json(resultat_final)
 
 st.subheader("État des réentraînements")

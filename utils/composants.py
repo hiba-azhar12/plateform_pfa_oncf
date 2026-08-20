@@ -12,6 +12,7 @@ from utils.chargement import (
     charger_importance_shap,
     charger_metriques,
     charger_predictions,
+    charger_predictions_completes,
     charger_saisonnalite,
     charger_seuil_anomalie,
     liaisons_ordonnees_par_frequence,
@@ -103,7 +104,7 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         _message_donnees_absentes(cle_modele)
         return
 
-    predictions = charger_predictions(cle_modele)
+    predictions = charger_predictions_completes(cle_modele)
     if predictions.empty:
         _message_donnees_absentes(cle_modele)
         return

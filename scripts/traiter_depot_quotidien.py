@@ -5,7 +5,7 @@ import re
 import shutil
 import sys
 import traceback
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -97,6 +97,35 @@ def _chemin_historique(cle_modele):
     return os.path.join(HISTORIQUE, f"{cle_modele}.parquet")
 
 
+def _derniere_date_historique():
+    dates_max = []
+    for cle_modele in MODELES:
+        chemin = _chemin_historique(cle_modele)
+        if not os.path.isfile(chemin):
+            continue
+        historique = pd.read_parquet(chemin, columns=["Date"])
+        if not historique.empty:
+            dates_max.append(pd.to_datetime(historique["Date"]).max())
+    if not dates_max:
+        return None
+    return min(dates_max).date()
+
+
+def _verifier_continuite(date_texte):
+    derniere_date = _derniere_date_historique()
+    if derniere_date is None:
+        return None
+    date_objet = datetime.strptime(date_texte, "%Y-%m-%d").date()
+    date_attendue = derniere_date + timedelta(days=1)
+    if date_objet != date_attendue:
+        return (
+            f"Date traitee ({date_texte}) differente de la date attendue "
+            f"({date_attendue.isoformat()}) d'apres l'historique existant (dernier jour connu : "
+            f"{derniere_date.isoformat()}). Verifiez les fichiers deposes avant de continuer."
+        )
+    return None
+
+
 def _aligner_types(nouvelles_lignes, historique):
     nouvelles_lignes = nouvelles_lignes.copy()
     for colonne in nouvelles_lignes.columns:
@@ -106,7 +135,7 @@ def _aligner_types(nouvelles_lignes, historique):
         if nouvelles_lignes[colonne].dtype == dtype_historique:
             continue
         if isinstance(dtype_historique, pd.CategoricalDtype):
-            continue  # recategorise apres concat dans _mettre_a_jour_historique
+            continue
         try:
             nouvelles_lignes[colonne] = nouvelles_lignes[colonne].astype(dtype_historique)
         except (ValueError, TypeError):
@@ -118,13 +147,8 @@ def _mettre_a_jour_historique(cle_modele, nouvelles_lignes):
     chemin = _chemin_historique(cle_modele)
     os.makedirs(HISTORIQUE, exist_ok=True)
 
-    colonnes_categorielles = []
     if os.path.isfile(chemin):
         historique = pd.read_parquet(chemin)
-        colonnes_categorielles = [
-            colonne for colonne in historique.columns
-            if isinstance(historique[colonne].dtype, pd.CategoricalDtype)
-        ]
         nouvelles_lignes = _aligner_types(nouvelles_lignes, historique)
         combine = pd.concat([historique, nouvelles_lignes], ignore_index=True, sort=False)
         del historique
@@ -133,10 +157,6 @@ def _mettre_a_jour_historique(cle_modele, nouvelles_lignes):
 
     cles = _cles_grain(cle_modele)
     combine = combine.drop_duplicates(subset=cles, keep="last").sort_values(cles)
-
-    for colonne in colonnes_categorielles:
-        combine[colonne] = combine[colonne].astype(str).astype("category")
-
     combine.to_parquet(chemin, index=False)
     return combine
 
@@ -265,6 +285,7 @@ def _ecrire_log(entree):
 
 def traiter_date(date_texte):
     _afficher_ram("debut traiter_date")
+    alerte_continuite = _verifier_continuite(date_texte)
     ventepda, controlepda, circulation, chemins = _charger_lot(date_texte)
     lots_agreges = agreger_lot_quotidien(ventepda, controlepda, circulation)
     del ventepda, controlepda, circulation
@@ -311,6 +332,7 @@ def traiter_date(date_texte):
         "colonnes_manquantes": colonnes_manquantes_totales,
         "liaisons_inconnues": liaisons_inconnues_totales,
         "erreurs_modeles": erreurs_modeles,
+        "alerte_continuite": alerte_continuite,
     }
 
 
@@ -344,6 +366,7 @@ def executer():
             "colonnes_manquantes": resultat["colonnes_manquantes"],
             "liaisons_inconnues": resultat["liaisons_inconnues"],
             "erreurs_modeles": resultat["erreurs_modeles"],
+            "alerte_continuite": resultat["alerte_continuite"],
         })
 
     except Exception as exception:

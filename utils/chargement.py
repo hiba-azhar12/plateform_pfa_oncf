@@ -48,6 +48,56 @@ def charger_historique(cle_modele):
     return charger_parquet(cle_modele, "historique")
 
 
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_predictions_completes(cle_modele):
+    info = MODELES[cle_modele]
+    test = charger_predictions(cle_modele)
+
+    nouvelles = charger_predictions_nouvelles(cle_modele)
+    if nouvelles.empty:
+        return test
+
+    nouvelles = nouvelles.copy()
+    nouvelles["Date"] = pd.to_datetime(nouvelles["Date"])
+    nouvelles["Reel"] = pd.to_numeric(nouvelles["Reel"], errors="coerce")
+    reconciliees = nouvelles.dropna(subset=["Reel"])
+    if reconciliees.empty:
+        return test
+
+    cible = info["cible"]
+    colonne_categorie = info["colonne_categorie"]
+
+    reconciliees = reconciliees.rename(columns={"Reel": cible})
+    reconciliees["LiaisonId"] = reconciliees["LiaisonId"].astype(str)
+    reconciliees["ErreurAbsolue"] = pd.to_numeric(reconciliees["ErreurAbsolue"], errors="coerce")
+    reconciliees["JourSemaine"] = reconciliees["Date"].dt.dayofweek
+
+    colonnes = ["Date", "LiaisonId"]
+    if info["granularite"] == "horaire":
+        colonnes.append("Heure")
+    if colonne_categorie:
+        colonnes.append(colonne_categorie)
+    colonnes += [cible, "Prediction", "ErreurAbsolue", "JourSemaine"]
+    reconciliees = reconciliees[[colonne for colonne in colonnes if colonne in reconciliees.columns]]
+
+    if test.empty:
+        combine = reconciliees
+    else:
+        test = test.copy()
+        test["Date"] = pd.to_datetime(test["Date"])
+        test["LiaisonId"] = test["LiaisonId"].astype(str)
+        combine = pd.concat([test, reconciliees], ignore_index=True, sort=False)
+
+    cles = ["Date", "LiaisonId"]
+    if info["granularite"] == "horaire":
+        cles.append("Heure")
+    if colonne_categorie:
+        cles.append(colonne_categorie)
+
+    combine = combine.drop_duplicates(subset=cles, keep="last").sort_values(cles).reset_index(drop=True)
+    return combine
+
+
 def charger_anomalies(cle_modele):
     return charger_csv(cle_modele, "anomalies")
 
@@ -81,9 +131,10 @@ def charger_encodage_liaison(cle_modele):
 
 
 def _liaisons_propres(colonne):
-    """Convertit une colonne LiaisonId en liste de str triable, en filtrant
-    les valeurs manquantes et en forçant explicitement le type via map(str)
-    (plus robuste que .astype(str) face aux NaN/valeurs mixtes)."""
+    """Convertit une colonne LiaisonId (ou une colonne de categorie) en liste
+    de str triable, en filtrant les valeurs manquantes et en forcant
+    explicitement le type via map(str) (plus robuste que .astype(str) face
+    aux NaN/valeurs mixtes qui provoquaient le TypeError du chatbot)."""
     valeurs = colonne.dropna().map(str).unique().tolist()
     return sorted(valeurs, key=str)
 
@@ -145,11 +196,21 @@ def liaisons_ordonnees_nouvelles_predictions(cle_modele):
     return frequence.sort_values(ascending=False).index.tolist()
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=60)
 def charger_predictions_nouvelles(cle_modele):
     from config.chemins import PREDICTIONS_NOUVELLES
 
     chemin = os.path.join(PREDICTIONS_NOUVELLES, f"{cle_modele}.parquet")
+    if not _existe(chemin):
+        return pd.DataFrame()
+    return pd.read_parquet(chemin)
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_historique_complet(cle_modele):
+    from config.chemins import HISTORIQUE
+
+    chemin = os.path.join(HISTORIQUE, f"{cle_modele}.parquet")
     if not _existe(chemin):
         return pd.DataFrame()
     return pd.read_parquet(chemin)
@@ -167,6 +228,16 @@ def charger_log_execution():
 
 def dernier_log_execution():
     journal = charger_log_execution()
-    if not journal:
+    entrees_pipeline = [
+        entree for entree in journal
+        if isinstance(entree, dict) and entree.get("type") != "reentrainement"
+    ]
+    if not entrees_pipeline:
         return None
-    return journal[-1]
+    return entrees_pipeline[-1]
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_journal_reentrainements():
+    journal = charger_log_execution()
+    return [entree for entree in journal if isinstance(entree, dict) and entree.get("type") == "reentrainement"]
