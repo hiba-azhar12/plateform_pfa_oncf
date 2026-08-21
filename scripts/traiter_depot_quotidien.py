@@ -299,8 +299,9 @@ def traiter_date(date_texte):
     del ventepda, controlepda, circulation
     _afficher_ram("apres agregation lot quotidien")
 
-    for cle_modele, lignes in lots_agreges.items():
-        _mettre_a_jour_historique(cle_modele, lignes)
+    for cle_modele in list(lots_agreges.keys()):
+        lots_agreges[cle_modele] = _valeur_reelle_observee(cle_modele, lots_agreges[cle_modele])
+        _mettre_a_jour_historique(cle_modele, lots_agreges[cle_modele])
     _afficher_ram("apres mise a jour historique")
 
     date_courante = pd.Timestamp(date_texte)
