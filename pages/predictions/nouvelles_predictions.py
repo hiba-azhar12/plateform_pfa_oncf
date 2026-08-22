@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from config.modeles import MODELES, MODELES_HORIZON_DEDIE, HORIZONS_DEDIES, horizons_disponibles
+from config.modeles import MODELES, horizons_disponibles
 from utils.chargement import (
     charger_historique_complet,
     charger_predictions_nouvelles_multi_horizon,
@@ -15,8 +15,6 @@ from utils.style import PALETTE, bandeau_statut, entete
 from utils.tendances import CADENCES, serie_journaliere, serie_tendance, valeur_comparaison
 
 entete("Nouvelles Prédictions", "Prédiction des prochains jours (J+1 à J+15 selon le modèle), calculée chaque nuit à partir des dépôts quotidiens de données PDA")
-
-COULEURS_HORIZON = {1: PALETTE["orange"], 7: PALETTE["steel"], 15: PALETTE["amber"]}
 
 
 def _formater_valeur(valeur, famille):
@@ -87,7 +85,6 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
         colonne_categorie = info["colonne_categorie"]
         fonction_agg = _fonction_agregation(info["famille"])
         libelle_agregat = "Total" if fonction_agg == "sum" else "Moyenne"
-        modele_multihorizon = cle_modele in MODELES_HORIZON_DEDIE
 
         donnees_multi = charger_predictions_nouvelles_multi_horizon(cle_modele)
         if donnees_multi.empty:
@@ -192,6 +189,11 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
         if granularite_horaire:
             titre_selection += " — Toutes les heures" if heure_est_all else f" — {heure_choisie}h"
         titre_selection += f" — J+{horizon_selectionne}"
+
+        titre_base = info["libelle"]
+        titre_base += " — Toutes les liaisons (agrégé)" if liaison_est_all else f" — Liaison {libelle_liaison(liaison_choisie)}"
+        if granularite_horaire:
+            titre_base += " — Toutes les heures" if heure_est_all else f" — {heure_choisie}h"
 
         valeur_prediction_globale = None
 
@@ -315,112 +317,74 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
             st.info("Aucune journée n'a encore été réconciliée avec sa valeur réelle.")
             continue
 
-        horizons_reconciliation = [1] + (HORIZONS_DEDIES if modele_multihorizon else [])
-        selections_reconciliation = {}
-        for horizon_r in horizons_reconciliation:
-            sous_r = donnees_multi[
-                (donnees_multi["Horizon"] == horizon_r) & (donnees_multi["Date"].dt.date == date_reconciliee)
-            ]
-            if sous_r.empty:
-                continue
-            selection_r = _filtrer(sous_r).copy()
-            if not selection_r.empty:
-                selections_reconciliation[horizon_r] = selection_r
+        OFFSETS_RECONCILIATION = [0, 7, 15, 30]
+        LIBELLES_OFFSET_RECONCILIATION = {0: "J", 7: "J-7", 15: "J-15", 30: "J-30"}
+        dates_reconciliation = {
+            offset: pd.Timestamp(date_reconciliee) - pd.Timedelta(days=offset)
+            for offset in OFFSETS_RECONCILIATION
+        }
 
-        libelle_horizons_dispo = ", ".join(f"J+{h}" for h in selections_reconciliation)
-        st.markdown(f"### Journée réconciliée : {date_reconciliee.strftime('%d/%m/%Y')}")
+        options_offset_reconciliation = [
+            f"{LIBELLES_OFFSET_RECONCILIATION[offset]} — {date_o.strftime('%d/%m/%Y')}"
+            for offset, date_o in dates_reconciliation.items()
+        ]
+        choix_offset_reconciliation = st.selectbox(
+            "Journée affichée", options_offset_reconciliation, key=f"reconciliation_offset_{cle_modele}"
+        )
+        offset_reconciliation = OFFSETS_RECONCILIATION[options_offset_reconciliation.index(choix_offset_reconciliation)]
+        date_affichee_reconciliation = dates_reconciliation[offset_reconciliation].date()
+
+        st.markdown(f"### Journée réconciliée : {date_affichee_reconciliation.strftime('%d/%m/%Y')}")
         st.caption(
-            f"Prédiction(s) {libelle_horizons_dispo} contre réel pour cette même journée, sur la sélection ci-dessus. "
+            "Valeurs réelles observées pour cette journée, sur la sélection ci-dessus. "
             "L'historique complet des journées réconciliées vit dans les dashboards Ventes / Contrôles."
         )
 
-        if 1 not in selections_reconciliation:
-            st.warning("Aucune donnée pour cette combinaison.")
+        sous_reel_reconciliation = donnees_multi[
+            (donnees_multi["Horizon"] == 1) & (donnees_multi["Date"].dt.date == date_affichee_reconciliation)
+        ]
+        selection_reelle_reconciliation = _filtrer(sous_reel_reconciliation).copy()
+
+        if selection_reelle_reconciliation.empty or selection_reelle_reconciliation["Reel"].notna().sum() == 0:
+            st.info(f"Aucune valeur réelle disponible pour le {date_affichee_reconciliation.strftime('%d/%m/%Y')}.")
             continue
 
-        selection_reconciliee = selections_reconciliation[1]
-
         if liaison_est_all:
-            agreges_par_horizon = {}
-            for horizon_r, selection_r in selections_reconciliation.items():
-                agrege_r = selection_r.groupby("LiaisonId", as_index=False).agg({"Reel": fonction_agg, "Prediction": fonction_agg})
-                agreges_par_horizon[horizon_r] = agrege_r
+            agrege_reel_reconciliation = selection_reelle_reconciliation.groupby("LiaisonId", as_index=False)["Reel"].agg(fonction_agg)
+            agrege_reel_reconciliation = agrege_reel_reconciliation.sort_values("Reel", ascending=False)
 
-            agrege_base = agreges_par_horizon[1].sort_values("Prediction", ascending=False)
-            reel_connu = selection_reconciliee["Reel"].notna().any()
-
-            colonne_un, colonne_deux, colonne_trois = st.columns(3)
+            colonne_un, colonne_deux = st.columns(2)
             with colonne_un:
-                st.metric("Liaisons concernées", len(agrege_base))
+                st.metric("Liaisons concernées", len(agrege_reel_reconciliation))
             with colonne_deux:
-                valeur = selection_reconciliee["Reel"].agg(fonction_agg) if reel_connu else None
-                st.metric(f"{libelle_agregat} réel", _formater_valeur(valeur, info["famille"]) if reel_connu else "en attente")
-            with colonne_trois:
-                st.metric(f"{libelle_agregat} prédiction J+1", _formater_valeur(selection_reconciliee["Prediction"].agg(fonction_agg), info["famille"]))
+                st.metric(f"{libelle_agregat} réel", _formater_valeur(agrege_reel_reconciliation["Reel"].agg(fonction_agg), info["famille"]))
 
-            top_liaisons = agrege_base.head(25)["LiaisonId"].tolist()
-            top_liaisons_affichees = [nom_liaison(liaison) for liaison in top_liaisons]
+            top_liaisons_reconciliation = agrege_reel_reconciliation.head(25)["LiaisonId"].tolist()
+            top_liaisons_affichees_reconciliation = [nom_liaison(liaison) for liaison in top_liaisons_reconciliation]
             figure_r = go.Figure()
             figure_r.add_trace(go.Bar(
-                x=top_liaisons_affichees,
-                y=agrege_base.set_index("LiaisonId").reindex(top_liaisons)["Reel"],
-                name="Réel", marker_color=PALETTE["navy"],
+                x=top_liaisons_affichees_reconciliation,
+                y=agrege_reel_reconciliation.set_index("LiaisonId").reindex(top_liaisons_reconciliation)["Reel"],
+                marker_color=PALETTE["navy"],
             ))
-            for horizon_r, agrege_r in agreges_par_horizon.items():
-                serie_liaisons = agrege_r.set_index("LiaisonId").reindex(top_liaisons)["Prediction"]
-                figure_r.add_trace(go.Bar(
-                    x=top_liaisons_affichees, y=serie_liaisons,
-                    name=f"Prédiction J+{horizon_r}", marker_color=COULEURS_HORIZON.get(horizon_r, PALETTE["orange"]),
-                ))
-            figure_r.update_layout(barmode="group")
-            _mise_en_forme(figure_r, titre=f"{titre_selection} — {date_reconciliee.strftime('%d/%m/%Y')}", hauteur=400)
+            _mise_en_forme(figure_r, titre=f"{titre_base} — {date_affichee_reconciliation.strftime('%d/%m/%Y')}", hauteur=400, afficher_legende=False)
             figure_r.update_xaxes(title_text="Liaison", type="category")
             figure_r.update_yaxes(title_text=info["libelle_court"])
             st.plotly_chart(figure_r, use_container_width=True)
 
         elif granularite_horaire and heure_est_all:
-            series_par_horizon = {h: sel.sort_values("Heure") for h, sel in selections_reconciliation.items()}
-            serie_base = series_par_horizon[1]
-            reel_connu = serie_base["Reel"].notna().any()
-            total_reel = serie_base["Reel"].agg(fonction_agg) if reel_connu else None
-            total_pred = serie_base["Prediction"].agg(fonction_agg)
+            serie_reelle_reconciliation = selection_reelle_reconciliation.sort_values("Heure")
+            total_reel_reconciliation = serie_reelle_reconciliation["Reel"].agg(fonction_agg)
 
-            colonne_un, colonne_deux, colonne_trois = st.columns(3)
-            with colonne_un:
-                st.metric(f"{libelle_agregat} réel", _formater_valeur(total_reel, info["famille"]) if reel_connu else "en attente")
-            with colonne_deux:
-                st.metric(f"{libelle_agregat} prédiction J+1", _formater_valeur(total_pred, info["famille"]))
-            with colonne_trois:
-                ecart = (total_pred - total_reel) if reel_connu else None
-                st.metric("Écart J+1", _formater_delta(ecart, info["famille"]) or "—")
+            st.metric(f"{libelle_agregat} réel", _formater_valeur(total_reel_reconciliation, info["famille"]))
 
             figure_h = go.Figure()
-            figure_h.add_trace(go.Bar(x=serie_base["Heure"], y=serie_base["Reel"], name="Réel", marker_color=PALETTE["navy"]))
-            for horizon_r, serie_r in series_par_horizon.items():
-                figure_h.add_trace(go.Bar(
-                    x=serie_r["Heure"], y=serie_r["Prediction"],
-                    name=f"Prédiction J+{horizon_r}", marker_color=COULEURS_HORIZON.get(horizon_r, PALETTE["orange"]),
-                ))
-            figure_h.update_layout(barmode="group")
-            _mise_en_forme(figure_h, titre=f"{titre_selection} — {date_reconciliee.strftime('%d/%m/%Y')}", hauteur=360)
+            figure_h.add_trace(go.Bar(x=serie_reelle_reconciliation["Heure"], y=serie_reelle_reconciliation["Reel"], marker_color=PALETTE["navy"]))
+            _mise_en_forme(figure_h, titre=f"{titre_base} — {date_affichee_reconciliation.strftime('%d/%m/%Y')}", hauteur=360, afficher_legende=False)
             figure_h.update_xaxes(title_text="Heure", type="category")
             figure_h.update_yaxes(title_text=info["libelle_court"])
             st.plotly_chart(figure_h, use_container_width=True)
 
         else:
-            ligne = selection_reconciliee.iloc[0]
-            valeur_reelle = ligne["Reel"]
-
-            colonnes_metriques = st.columns(1 + len(selections_reconciliation))
-            with colonnes_metriques[0]:
-                st.metric("Réel", _formater_valeur(valeur_reelle, info["famille"]) if pd.notna(valeur_reelle) else "en attente")
-            for position, (horizon_r, selection_r) in enumerate(selections_reconciliation.items(), start=1):
-                valeur_prediction_r = selection_r.iloc[0]["Prediction"]
-                ecart_r = abs(valeur_reelle - valeur_prediction_r) if pd.notna(valeur_reelle) else None
-                with colonnes_metriques[position]:
-                    st.metric(
-                        f"Prédiction J+{horizon_r}",
-                        _formater_valeur(valeur_prediction_r, info["famille"]),
-                        delta=_formater_delta(ecart_r, info["famille"]) if ecart_r is not None else None,
-                        delta_color="inverse",
-                    )
+            valeur_reelle_reconciliation = selection_reelle_reconciliation.iloc[0]["Reel"]
+            st.metric("Réel", _formater_valeur(valeur_reelle_reconciliation, info["famille"]) if pd.notna(valeur_reelle_reconciliation) else "en attente")
