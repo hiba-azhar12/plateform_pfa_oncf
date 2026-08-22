@@ -3453,5 +3453,160 @@
     },
     "rmse_ancien_meme_periode": 8.289718695149102,
     "id_declenchement": "703bde03-fc98-4b94-978d-d09fd3619f2b"
+  },
+  {
+    "horodatage": "2026-08-23 00:13:38",
+    "type": "reentrainement",
+    "cle_modele": "modele4_part_confort",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.08610478583472508,
+      "MAE": 0.03425139378277417,
+      "MedAE": 0.017367794587304752,
+      "WMAPE": 0.059468685918208496,
+      "NbLignesValidation": 51948,
+      "Cible": "PartConfort",
+      "Modele": "PART CONFORT - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-17 12:29:23",
+      "NbLignesEntrainement": 256672
+    },
+    "metriques_apres": {
+      "RMSE": 0.07833496764768152,
+      "MAE": 0.031153282444966162,
+      "MedAE": 0.015120341315152431,
+      "WMAPE": 0.049610325319067505,
+      "NbLignesValidation": 56830,
+      "Cible": "PartConfort",
+      "Modele": "PART CONFORT - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:13:38",
+      "NbLignesEntrainement": 263398
+    },
+    "rmse_ancien_meme_periode": 0.07958138725249858,
+    "id_declenchement": "eea5878c-4d66-4860-a0f0-31f2ef7fa637"
+  },
+  {
+    "horodatage": "2026-08-23 00:15:01",
+    "type": "reentrainement",
+    "cle_modele": "modele6_taux_fraude",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.1318629411050785,
+      "MAE": 0.06987175729537619,
+      "MedAE": 0.06278743031940094,
+      "WMAPE": 0.889676433684232,
+      "NbLignesValidation": 33723,
+      "Cible": "TauxFraude",
+      "Modele": "TAUX FRAUDE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 21:53:49",
+      "NbLignesEntrainement": 110996
+    },
+    "metriques_apres": {
+      "RMSE": 0.13132006120137998,
+      "MAE": 0.06962011995861721,
+      "MedAE": 0.06623022339162248,
+      "WMAPE": 0.8884049767592083,
+      "NbLignesValidation": 33565,
+      "Cible": "TauxFraude",
+      "Modele": "TAUX FRAUDE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:15:01",
+      "NbLignesEntrainement": 111501
+    },
+    "rmse_ancien_meme_periode": 0.131312723217138,
+    "id_declenchement": "964e914b-b76c-4f0a-99e9-a2538d961027"
+  },
+  {
+    "horodatage": "2026-08-23 00:18:34",
+    "type": "reentrainement",
+    "cle_modele": "modele2_taux_vente_guichet",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.12846128272331722,
+      "MAE": 0.1096409472413774,
+      "MedAE": 0.10211042603767953,
+      "WMAPE": 0.36700175205977725,
+      "NbLignesValidation": 35829,
+      "Cible": "TauxVenteGuichet",
+      "Modele": "TAUX VENTE PDA - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 22:36:03",
+      "NbLignesEntrainement": 113023
+    },
+    "metriques_apres": {
+      "RMSE": 0.12742619005086941,
+      "MAE": 0.10671082514794802,
+      "MedAE": 0.09556066763161537,
+      "WMAPE": 0.3554311262762649,
+      "NbLignesValidation": 35659,
+      "Cible": "TauxVenteGuichet",
+      "Modele": "TAUX VENTE PDA - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:18:34",
+      "NbLignesEntrainement": 113536
+    },
+    "rmse_ancien_meme_periode": 0.1289588249365802,
+    "id_declenchement": "e44b2339-aa9c-462c-9a76-bd2a49e0b503"
+  },
+  {
+    "horodatage": "2026-08-23 00:20:58",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.1597988915958753,
+      "MAE": 0.08572702191821252,
+      "MedAE": 0.05662714396006463,
+      "WMAPE": 0.16330839105789433,
+      "NbLignesValidation": 68097,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 21:40:27",
+      "NbLignesEntrainement": 224622
+    },
+    "metriques_apres": {
+      "RMSE": 0.15867017427926045,
+      "MAE": 0.08512308974235852,
+      "MedAE": 0.05499335040930791,
+      "WMAPE": 0.16167734351194155,
+      "NbLignesValidation": 67578,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:20:58",
+      "NbLignesEntrainement": 225645
+    },
+    "rmse_ancien_meme_periode": 0.1585740298237356,
+    "id_declenchement": "9778ab4d-7d3c-4c25-bc43-96a9d34f2ef4"
+  },
+  {
+    "horodatage": "2026-08-23 00:24:37",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.15867017427926045,
+      "MAE": 0.08512308974235852,
+      "MedAE": 0.05499335040930791,
+      "WMAPE": 0.16167734351194155,
+      "NbLignesValidation": 67578,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:20:58",
+      "NbLignesEntrainement": 225645
+    },
+    "metriques_apres": {
+      "RMSE": 0.15867017427926045,
+      "MAE": 0.08512308974235852,
+      "MedAE": 0.05499335040930791,
+      "WMAPE": 0.16167734351194155,
+      "NbLignesValidation": 67578,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 00:24:37",
+      "NbLignesEntrainement": 225645
+    },
+    "rmse_ancien_meme_periode": 0.15867017427926045,
+    "id_declenchement": "367c67ed-d9e8-4cfa-b898-13ad9bea17c2"
   }
 ]

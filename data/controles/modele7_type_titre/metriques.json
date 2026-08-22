@@ -1,11 +1,11 @@
 {
-  "RMSE": 0.1597988915958753,
-  "MAE": 0.08572702191821252,
-  "MedAE": 0.05662714396006463,
-  "WMAPE": 0.16330839105789433,
-  "NbLignesValidation": 68097,
+  "RMSE": 0.15867017427926045,
+  "MAE": 0.08512308974235852,
+  "MedAE": 0.05499335040930791,
+  "WMAPE": 0.16167734351194155,
+  "NbLignesValidation": 67578,
   "Cible": "PartType",
   "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
-  "DateReentrainement": "2026-08-22 21:40:27",
-  "NbLignesEntrainement": 224622
+  "DateReentrainement": "2026-08-23 00:24:37",
+  "NbLignesEntrainement": 225645
 }

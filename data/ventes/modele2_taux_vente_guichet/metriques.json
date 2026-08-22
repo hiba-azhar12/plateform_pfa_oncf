@@ -1,11 +1,11 @@
 {
-  "RMSE": 0.12846128272331722,
-  "MAE": 0.1096409472413774,
-  "MedAE": 0.10211042603767953,
-  "WMAPE": 0.36700175205977725,
-  "NbLignesValidation": 35829,
+  "RMSE": 0.12742619005086941,
+  "MAE": 0.10671082514794802,
+  "MedAE": 0.09556066763161537,
+  "WMAPE": 0.3554311262762649,
+  "NbLignesValidation": 35659,
   "Cible": "TauxVenteGuichet",
   "Modele": "TAUX VENTE PDA - REENTRAINEMENT AUTOMATIQUE",
-  "DateReentrainement": "2026-08-22 22:36:03",
-  "NbLignesEntrainement": 113023
+  "DateReentrainement": "2026-08-23 00:18:34",
+  "NbLignesEntrainement": 113536
 }

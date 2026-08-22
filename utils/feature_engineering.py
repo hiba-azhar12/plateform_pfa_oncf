@@ -35,9 +35,17 @@ def calculer_features_calendaires(dates, avec_heure=False, heures=None):
     table["Mois"] = table["Date"].dt.month
     table["Annee"] = table["Date"].dt.year
     table["EstWeekend"] = table["JourSemaine"] >= 5
-    table["EstFerie"] = table["Date"].apply(lambda d: d.date() in _FERIES_MAROC)
-    table["EstRamadan"] = table["Date"].apply(lambda d: _dans_une_periode(d, RAMADAN_PERIODES))
-    table["EstVacances"] = table["Date"].apply(lambda d: _dans_une_periode(d, VACANCES_SCOLAIRES_PERIODES))
+
+    dates_uniques = pd.Series(table["Date"].unique())
+    proprietes_dates = pd.DataFrame({"Date": dates_uniques})
+    proprietes_dates["EstFerie"] = proprietes_dates["Date"].apply(lambda d: d.date() in _FERIES_MAROC)
+    proprietes_dates["EstRamadan"] = proprietes_dates["Date"].apply(lambda d: _dans_une_periode(d, RAMADAN_PERIODES))
+    proprietes_dates["EstVacances"] = proprietes_dates["Date"].apply(lambda d: _dans_une_periode(d, VACANCES_SCOLAIRES_PERIODES))
+    proprietes_dates = proprietes_dates.set_index("Date")
+
+    table["EstFerie"] = table["Date"].map(proprietes_dates["EstFerie"])
+    table["EstRamadan"] = table["Date"].map(proprietes_dates["EstRamadan"])
+    table["EstVacances"] = table["Date"].map(proprietes_dates["EstVacances"])
 
     table["jour_semaine_sin"] = np.sin(2 * np.pi * table["JourSemaine"] / 7)
     table["jour_semaine_cos"] = np.cos(2 * np.pi * table["JourSemaine"] / 7)
@@ -222,11 +230,19 @@ def ajouter_lags_rolling_calendaires(historique, colonne_cible, colonnes_groupe,
     return historique
 
 
-def calculer_encodage_expanding(historique, colonne_cible, colonnes_groupe):
+def _expanding_mean_vectorisee(historique, colonne_cible, colonnes_groupe):
     groupe = historique.groupby(colonnes_groupe, observed=True)[colonne_cible]
-    return groupe.transform(lambda serie: serie.shift(1).expanding().mean())
+    decale = groupe.shift(1)
+    valide = decale.notna()
+    cles_groupe = [historique[colonne] for colonne in colonnes_groupe]
+    cumsum = decale.fillna(0).groupby(cles_groupe).cumsum()
+    cumcount = valide.groupby(cles_groupe).cumsum()
+    return cumsum / cumcount.replace(0, np.nan)
+
+
+def calculer_encodage_expanding(historique, colonne_cible, colonnes_groupe):
+    return _expanding_mean_vectorisee(historique, colonne_cible, colonnes_groupe)
 
 
 def calculer_interaction_jour(historique, colonne_cible, colonnes_groupe):
-    groupe = historique.groupby(colonnes_groupe, observed=True)[colonne_cible]
-    return groupe.transform(lambda serie: serie.shift(1).expanding().mean())
+    return _expanding_mean_vectorisee(historique, colonne_cible, colonnes_groupe)

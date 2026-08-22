@@ -62,7 +62,14 @@ if api_active:
 else:
     st.error("API hors ligne — lance scripts/lancer_api.sh")
 
-st.subheader("Dernier dépôt de données")
+colonne_soustitre_depot, colonne_bouton_actualiser = st.columns([5, 1], vertical_alignment="bottom")
+with colonne_soustitre_depot:
+    st.subheader("Dernier dépôt de données")
+with colonne_bouton_actualiser:
+    if st.button("Actualiser", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
 dernier = dernier_log_execution()
 if dernier is None:
     st.info("Aucun dépôt enregistré")
@@ -77,27 +84,52 @@ if st.button("Forcer le traitement"):
     try:
         reponse_declenchement = requests.post(f"{URL_API}/traiter-quotidien", timeout=10)
     except requests.exceptions.RequestException as exception:
-        st.error(f"Impossible de declencher le traitement : {exception}")
+        st.session_state["message_traitement"] = {
+            "messages": [("error", f"Impossible de declencher le traitement : {exception}")], "json": None,
+        }
     else:
         if reponse_declenchement.status_code == 409:
-            st.warning("Un traitement est deja en cours. Attends qu'il se termine avant d'en relancer un.")
+            st.session_state["message_traitement"] = {
+                "messages": [("warning", "Un traitement est deja en cours. Attends qu'il se termine avant d'en relancer un.")],
+                "json": None,
+            }
         elif reponse_declenchement.status_code != 200:
-            st.error(f"Le declenchement a echoue : {reponse_declenchement.text}")
+            st.session_state["message_traitement"] = {
+                "messages": [("error", f"Le declenchement a echoue : {reponse_declenchement.text}")], "json": None,
+            }
         else:
-            id_declenchement = reponse_declenchement.json()["id_declenchement"]
-            with st.spinner("Traitement en cours..."):
-                resultat_final = _attendre_resultat(id_declenchement, "traitement")
+            st.session_state["traitement_en_cours"] = reponse_declenchement.json()["id_declenchement"]
+    st.rerun()
 
-            if resultat_final is None:
-                st.warning("Le suivi en direct a expire, mais le traitement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le resultat final.")
-            elif resultat_final["statut"] == "erreur":
-                st.error(f"Le traitement a echoue : {resultat_final.get('erreur')}")
-            else:
-                st.cache_data.clear()
-                st.success("Traitement termine. Les pages Nouvelles Predictions et Dashboard affichent maintenant les donnees a jour.")
-                if resultat_final.get("alerte_continuite"):
-                    st.warning(resultat_final["alerte_continuite"])
-                st.json(resultat_final)
+if "traitement_en_cours" in st.session_state:
+    id_declenchement = st.session_state["traitement_en_cours"]
+    with st.spinner("Traitement en cours..."):
+        resultat_final = _attendre_resultat(id_declenchement, "traitement")
+    del st.session_state["traitement_en_cours"]
+
+    if resultat_final is None:
+        st.session_state["message_traitement"] = {
+            "messages": [("warning", "Le suivi en direct a expire, mais le traitement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le resultat final.")],
+            "json": None,
+        }
+    elif resultat_final["statut"] == "erreur":
+        st.session_state["message_traitement"] = {
+            "messages": [("error", f"Le traitement a echoue : {resultat_final.get('erreur')}")], "json": None,
+        }
+    else:
+        st.cache_data.clear()
+        messages = [("success", "Traitement termine. Les pages Nouvelles Predictions et Dashboard affichent maintenant les donnees a jour.")]
+        if resultat_final.get("alerte_continuite"):
+            messages.append(("warning", resultat_final["alerte_continuite"]))
+        st.session_state["message_traitement"] = {"messages": messages, "json": resultat_final}
+    st.rerun()
+
+if "message_traitement" in st.session_state:
+    info_message = st.session_state.pop("message_traitement")
+    for type_message, texte_message in info_message["messages"]:
+        getattr(st, type_message)(texte_message)
+    if info_message["json"] is not None:
+        st.json(info_message["json"])
 
 st.subheader("État des réentraînements")
 journal = charger_log_execution()
@@ -143,44 +175,82 @@ lignes_affichees = lignes if filtre_horizon == "Tous" else [ligne for ligne in l
 
 st.dataframe(lignes_affichees, use_container_width=True)
 
-options_reentrainement = []
-for cle_modele, info in MODELES.items():
-    options_reentrainement.append((info["libelle_court"], cle_modele, None))
-    if cle_modele in MODELES_HORIZON_DEDIE:
-        for horizon in HORIZONS_DEDIES:
-            options_reentrainement.append((f"{info['libelle_court']} — J+{horizon}", cle_modele, horizon))
+colonne_selection_modele, colonne_selection_horizon, colonne_bouton = st.columns([2, 1, 1], vertical_alignment="bottom")
 
-colonne_selection, colonne_bouton = st.columns([3, 1])
-choix_reentrainement = colonne_selection.selectbox(
-    "Modèle à réentraîner", options=options_reentrainement, format_func=lambda option: option[0],
+cle_choisie = colonne_selection_modele.selectbox(
+    "Modèle à réentraîner", options=list(MODELES.keys()),
+    format_func=lambda cle: MODELES[cle]["libelle_court"],
+    key="choix_modele_reentrainement_administration",
 )
-cle_choisie, horizon_choisi = choix_reentrainement[1], choix_reentrainement[2]
 
-if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active):
+if cle_choisie in MODELES_HORIZON_DEDIE:
+    options_horizon_reentrainement = [None] + list(HORIZONS_DEDIES)
+    horizon_choisi = colonne_selection_horizon.selectbox(
+        "Horizon", options=options_horizon_reentrainement,
+        format_func=lambda horizon: "J+1" if horizon is None else f"J+{horizon}",
+        key=f"choix_horizon_reentrainement_administration_{cle_choisie}",
+    )
+else:
+    horizon_choisi = None
+    with colonne_selection_horizon:
+        st.text_input("Horizon", value="J+1", disabled=True, key=f"horizon_fixe_administration_{cle_choisie}")
+
+if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active, use_container_width=True):
     parametres = {"horizon": horizon_choisi} if horizon_choisi is not None else {}
     nom_journal_direct = f"reentrainement_{cle_choisie}" if horizon_choisi is None else f"reentrainement_{cle_choisie}_h{horizon_choisi}"
     try:
         reponse_declenchement = requests.post(f"{URL_API}/reentrainer/{cle_choisie}", params=parametres, timeout=10)
     except requests.exceptions.RequestException as exception:
-        st.error(f"Impossible de declencher le reentrainement : {exception}")
+        st.session_state["message_reentrainement"] = {
+            "messages": [("error", f"Impossible de declencher le reentrainement : {exception}")], "json": None,
+        }
     else:
         if reponse_declenchement.status_code == 409:
-            st.warning("Un reentrainement est deja en cours pour ce modele/horizon. Attends qu'il se termine avant d'en relancer un.")
+            st.session_state["message_reentrainement"] = {
+                "messages": [("warning", "Un reentrainement est deja en cours pour ce modele/horizon. Attends qu'il se termine avant d'en relancer un.")],
+                "json": None,
+            }
         elif reponse_declenchement.status_code != 200:
-            st.error(f"Le declenchement a echoue : {reponse_declenchement.text}")
+            st.session_state["message_reentrainement"] = {
+                "messages": [("error", f"Le declenchement a echoue : {reponse_declenchement.text}")], "json": None,
+            }
         else:
-            id_declenchement = reponse_declenchement.json()["id_declenchement"]
-            with st.spinner("Réentraînement en cours"):
-                resultat_final = _attendre_resultat(id_declenchement, nom_journal_direct)
+            st.session_state["reentrainement_en_cours"] = {
+                "id_declenchement": reponse_declenchement.json()["id_declenchement"],
+                "nom_journal_direct": nom_journal_direct,
+            }
+    st.rerun()
 
-            if resultat_final is None:
-                st.warning("Le suivi en direct a expire, mais le reentrainement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le tableau ci-dessus mis a jour.")
-            elif resultat_final["statut"] in ("erreur", "echec"):
-                st.error(f"Le reentrainement a echoue : {resultat_final.get('erreur')}")
-            elif resultat_final["statut"] == "rejete":
-                st.warning("Nouveau modele rejete (regression de performance). L'ancien modele reste en service.")
-                st.json(resultat_final)
-            else:
-                st.cache_data.clear()
-                st.success("Reentrainement termine et nouveau modele deploye.")
-                st.json(resultat_final)
+if "reentrainement_en_cours" in st.session_state:
+    job = st.session_state["reentrainement_en_cours"]
+    with st.spinner("Réentraînement en cours"):
+        resultat_final = _attendre_resultat(job["id_declenchement"], job["nom_journal_direct"])
+    del st.session_state["reentrainement_en_cours"]
+
+    if resultat_final is None:
+        st.session_state["message_reentrainement"] = {
+            "messages": [("warning", "Le suivi en direct a expire, mais le reentrainement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le tableau ci-dessus mis a jour.")],
+            "json": None,
+        }
+    elif resultat_final["statut"] in ("erreur", "echec"):
+        st.session_state["message_reentrainement"] = {
+            "messages": [("error", f"Le reentrainement a echoue : {resultat_final.get('erreur')}")], "json": None,
+        }
+    elif resultat_final["statut"] == "rejete":
+        st.session_state["message_reentrainement"] = {
+            "messages": [("warning", "Nouveau modele rejete (regression de performance). L'ancien modele reste en service.")],
+            "json": resultat_final,
+        }
+    else:
+        st.cache_data.clear()
+        st.session_state["message_reentrainement"] = {
+            "messages": [("success", "Reentrainement termine et nouveau modele deploye.")], "json": resultat_final,
+        }
+    st.rerun()
+
+if "message_reentrainement" in st.session_state:
+    info_message = st.session_state.pop("message_reentrainement")
+    for type_message, texte_message in info_message["messages"]:
+        getattr(st, type_message)(texte_message)
+    if info_message["json"] is not None:
+        st.json(info_message["json"])
