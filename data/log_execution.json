@@ -3384,5 +3384,74 @@
     "horodatage": "2026-08-22 22:41:39",
     "statut": "en_cours",
     "id_declenchement": "2d8bf93d-e2e4-4b1a-8585-f2d8e54a3ec7"
+  },
+  {
+    "horodatage": "2026-08-22 23:13:33",
+    "statut": "en_cours",
+    "id_declenchement": "042bac3e-1163-4510-9a6c-98930ad37833"
+  },
+  {
+    "horodatage": "2026-08-22 23:17:44",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "horizon": 7,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 6.203159632797206,
+      "MAE": 1.177559689430866,
+      "MedAE": 0.27834758264156245,
+      "WMAPE": 0.7068012098030105,
+      "NbLignesValidation": 1976622,
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-22 15:48:45",
+      "NbLignesEntrainement": 5000000
+    },
+    "metriques_apres": {
+      "RMSE": 6.654966054172427,
+      "MAE": 1.188452255971593,
+      "MedAE": 0.2610327979539462,
+      "WMAPE": 0.7012179651008904,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-22 23:17:44",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 6.664912936379413,
+    "id_declenchement": "df558e6c-7779-4a69-b3d4-72f08cae834f"
+  },
+  {
+    "horodatage": "2026-08-22 23:43:15",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "horizon": 15,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbBillets",
+      "Horizon": 15,
+      "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE - J+15",
+      "RMSE": 6.279328042898175,
+      "MAE": 1.0237606279944307,
+      "MAPE": 75.30098848591054,
+      "WMAPE": 66.37886036614739,
+      "NbLignesTest": 2073562
+    },
+    "metriques_apres": {
+      "RMSE": 6.393894868503025,
+      "MAE": 1.1532743083933736,
+      "MedAE": 0.20404069587698648,
+      "WMAPE": 0.674448746422192,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbBillets",
+      "Horizon": 15,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+15",
+      "DateReentrainement": "2026-08-22 23:43:15",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 8.289718695149102,
+    "id_declenchement": "703bde03-fc98-4b94-978d-d09fd3619f2b"
   }
 ]

@@ -40,6 +40,7 @@ from utils.temps import horodatage_maroc
 
 TOLERANCE_REGRESSION = 1.1
 PART_VALIDATION = 0.15
+TAILLE_MAX_VALIDATION = 1_000_000
 
 ID_DECLENCHEMENT = None
 
@@ -53,6 +54,7 @@ PARAMETRES_LIGHTGBM_BASE = dict(
 PARAMETRES_CATBOOST_BASE = dict(
     iterations=1000, learning_rate=0.05, depth=8, l2_leaf_reg=3.0,
     random_seed=42, early_stopping_rounds=30, verbose=False,
+    used_ram_limit="3gb",
 )
 
 SPECIFICATIONS = {
@@ -261,6 +263,7 @@ def _entrainer_simple(cle_modele, table, colonnes_features, date_coupure):
     specification = SPECIFICATIONS[cle_modele]
     train, valid = _separer_train_validation(table, date_coupure)
     train = _sous_echantillonner(train, specification["taille_max"])
+    valid = _sous_echantillonner(valid, TAILLE_MAX_VALIDATION)
 
     x_train, y_train = train[colonnes_features], train[info["cible"]]
     x_valid, y_valid = valid[colonnes_features], valid[info["cible"]]
@@ -526,6 +529,7 @@ def reentrainer_horizon(cle_modele, horizon):
 
     train, valid = _separer_train_validation(table, date_coupure)
     train = _sous_echantillonner(train, specification["taille_max"])
+    valid = _sous_echantillonner(valid, TAILLE_MAX_VALIDATION)
 
     x_train, y_train = train[colonnes_modele], train["Cible"]
     x_valid, y_valid = valid[colonnes_modele], valid["Cible"]

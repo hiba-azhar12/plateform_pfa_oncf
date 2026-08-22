@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -35,7 +36,12 @@ DOSSIERS_DEPOT = {
     "circulation": DEPOT_QUOTIDIEN_CIRCULATION,
 }
 
-import math
+PROCESSUS_EN_COURS = {}
+
+
+def _job_deja_en_cours(cle):
+    processus = PROCESSUS_EN_COURS.get(cle)
+    return processus is not None and processus.poll() is None
 
 
 def _chemin_journal_direct(nom):
@@ -89,14 +95,18 @@ async def deposer_donnees(type_donnee: str, fichier: UploadFile):
 
 @app.post("/traiter-quotidien")
 async def traiter_quotidien():
+    if _job_deja_en_cours("traitement"):
+        raise HTTPException(status_code=409, detail="traitement_deja_en_cours")
+
     id_declenchement = str(uuid.uuid4())
     chemin_log = _chemin_journal_direct("traitement")
     with open(chemin_log, "w") as fichier_log:
-        subprocess.Popen(
+        processus = subprocess.Popen(
             [sys.executable, "scripts/traiter_depot_quotidien.py", "--id-declenchement", id_declenchement],
             stdout=fichier_log, stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+    PROCESSUS_EN_COURS["traitement"] = processus
     return {"statut": "traitement_lance", "horodatage": horodatage_maroc(), "id_declenchement": id_declenchement}
 
 
@@ -136,17 +146,22 @@ async def declencher_reentrainement(cle_modele: str, horizon: Optional[int] = No
     if horizon is not None and (cle_modele not in MODELES_HORIZON_DEDIE or horizon not in HORIZONS_DEDIES):
         raise HTTPException(status_code=400, detail="horizon indisponible pour ce modele")
 
-    id_declenchement = str(uuid.uuid4())
     nom_journal_direct = f"reentrainement_{cle_modele}" if horizon is None else f"reentrainement_{cle_modele}_h{horizon}"
+
+    if _job_deja_en_cours(nom_journal_direct):
+        raise HTTPException(status_code=409, detail="reentrainement_deja_en_cours")
+
+    id_declenchement = str(uuid.uuid4())
     commande = [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele, "--id-declenchement", id_declenchement]
     if horizon is not None:
         commande += ["--horizon", str(horizon)]
 
     chemin_log = _chemin_journal_direct(nom_journal_direct)
     with open(chemin_log, "w") as fichier_log:
-        subprocess.Popen(
+        processus = subprocess.Popen(
             commande,
             stdout=fichier_log, stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+    PROCESSUS_EN_COURS[nom_journal_direct] = processus
     return {"statut": "reentrainement_lance", "horodatage": horodatage_maroc(), "id_declenchement": id_declenchement}

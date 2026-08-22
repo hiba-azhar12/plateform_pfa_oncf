@@ -8,7 +8,7 @@ from utils.chargement import charger_log_execution, dernier_log_execution
 
 URL_API = "http://localhost:8000"
 
-DELAI_MAXIMUM = 1500
+DELAI_MAXIMUM = 5400
 INTERVALLE = 3
 
 
@@ -76,23 +76,28 @@ else:
 if st.button("Forcer le traitement"):
     try:
         reponse_declenchement = requests.post(f"{URL_API}/traiter-quotidien", timeout=10)
-        id_declenchement = reponse_declenchement.json()["id_declenchement"]
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le traitement : {exception}")
     else:
-        with st.spinner("Traitement en cours..."):
-            resultat_final = _attendre_resultat(id_declenchement, "traitement")
-
-        if resultat_final is None:
-            st.warning("Le traitement met plus de temps que prevu. Verifie l'onglet etat du pipeline plus tard.")
-        elif resultat_final["statut"] == "erreur":
-            st.error(f"Le traitement a echoue : {resultat_final.get('erreur')}")
+        if reponse_declenchement.status_code == 409:
+            st.warning("Un traitement est deja en cours. Attends qu'il se termine avant d'en relancer un.")
+        elif reponse_declenchement.status_code != 200:
+            st.error(f"Le declenchement a echoue : {reponse_declenchement.text}")
         else:
-            st.cache_data.clear()
-            st.success("Traitement termine. Les pages Nouvelles Predictions et Dashboard affichent maintenant les donnees a jour.")
-            if resultat_final.get("alerte_continuite"):
-                st.warning(resultat_final["alerte_continuite"])
-            st.json(resultat_final)
+            id_declenchement = reponse_declenchement.json()["id_declenchement"]
+            with st.spinner("Traitement en cours..."):
+                resultat_final = _attendre_resultat(id_declenchement, "traitement")
+
+            if resultat_final is None:
+                st.warning("Le suivi en direct a expire, mais le traitement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le resultat final.")
+            elif resultat_final["statut"] == "erreur":
+                st.error(f"Le traitement a echoue : {resultat_final.get('erreur')}")
+            else:
+                st.cache_data.clear()
+                st.success("Traitement termine. Les pages Nouvelles Predictions et Dashboard affichent maintenant les donnees a jour.")
+                if resultat_final.get("alerte_continuite"):
+                    st.warning(resultat_final["alerte_continuite"])
+                st.json(resultat_final)
 
 st.subheader("État des réentraînements")
 journal = charger_log_execution()
@@ -156,21 +161,26 @@ if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active):
     nom_journal_direct = f"reentrainement_{cle_choisie}" if horizon_choisi is None else f"reentrainement_{cle_choisie}_h{horizon_choisi}"
     try:
         reponse_declenchement = requests.post(f"{URL_API}/reentrainer/{cle_choisie}", params=parametres, timeout=10)
-        id_declenchement = reponse_declenchement.json()["id_declenchement"]
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le reentrainement : {exception}")
     else:
-        with st.spinner("Réentraînement en cours"):
-            resultat_final = _attendre_resultat(id_declenchement, nom_journal_direct)
-
-        if resultat_final is None:
-            st.warning("Le reentrainement met plus de temps que prevu. Verifie le tableau ci-dessus plus tard.")
-        elif resultat_final["statut"] in ("erreur", "echec"):
-            st.error(f"Le reentrainement a echoue : {resultat_final.get('erreur')}")
-        elif resultat_final["statut"] == "rejete":
-            st.warning("Nouveau modele rejete (regression de performance). L'ancien modele reste en service.")
-            st.json(resultat_final)
+        if reponse_declenchement.status_code == 409:
+            st.warning("Un reentrainement est deja en cours pour ce modele/horizon. Attends qu'il se termine avant d'en relancer un.")
+        elif reponse_declenchement.status_code != 200:
+            st.error(f"Le declenchement a echoue : {reponse_declenchement.text}")
         else:
-            st.cache_data.clear()
-            st.success("Reentrainement termine et nouveau modele deploye.")
-            st.json(resultat_final)
+            id_declenchement = reponse_declenchement.json()["id_declenchement"]
+            with st.spinner("Réentraînement en cours"):
+                resultat_final = _attendre_resultat(id_declenchement, nom_journal_direct)
+
+            if resultat_final is None:
+                st.warning("Le suivi en direct a expire, mais le reentrainement continue en arriere-plan et se terminera normalement. Recharge cette page dans quelques minutes pour voir le tableau ci-dessus mis a jour.")
+            elif resultat_final["statut"] in ("erreur", "echec"):
+                st.error(f"Le reentrainement a echoue : {resultat_final.get('erreur')}")
+            elif resultat_final["statut"] == "rejete":
+                st.warning("Nouveau modele rejete (regression de performance). L'ancien modele reste en service.")
+                st.json(resultat_final)
+            else:
+                st.cache_data.clear()
+                st.success("Reentrainement termine et nouveau modele deploye.")
+                st.json(resultat_final)
