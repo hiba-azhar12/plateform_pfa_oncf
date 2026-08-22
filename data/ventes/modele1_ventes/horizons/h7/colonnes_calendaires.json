@@ -1,0 +1,28 @@
+{
+  "colonnes": [
+    "EstWeekend",
+    "EstFerie",
+    "EstRamadan",
+    "EstVacances",
+    "jour_semaine_sin",
+    "jour_semaine_cos",
+    "mois_sin",
+    "mois_cos",
+    "heure_sin",
+    "heure_cos"
+  ],
+  "source_feries": "holidays.Morocco()",
+  "ramadan_periodes": [
+    [
+      "2024-03-10",
+      "2024-04-08"
+    ],
+    [
+      "2025-03-01",
+      "2025-03-29"
+    ]
+  ],
+  "vacances_scolaires_periodes": [],
+  "horizon": 7,
+  "reference_calendaire": "date_ancrage"
+}

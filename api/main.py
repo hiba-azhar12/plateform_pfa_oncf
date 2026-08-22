@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -16,7 +17,13 @@ from config.chemins import (
     JOURNAUX_DIRECTS,
     LOG_EXECUTION,
 )
-from config.modeles import MODELES, chemin_fichier
+from config.modeles import (
+    MODELES,
+    MODELES_HORIZON_DEDIE,
+    HORIZONS_DEDIES,
+    chemin_fichier,
+    chemin_fichier_horizon,
+)
 from utils.temps import horodatage_maroc
 
 app = FastAPI(title="API Plateforme ONCF")
@@ -104,10 +111,15 @@ async def obtenir_predictions(cle_modele: str):
 
 
 @app.get("/metriques/{cle_modele}")
-async def obtenir_metriques(cle_modele: str):
+async def obtenir_metriques(cle_modele: str, horizon: Optional[int] = None):
     if cle_modele not in MODELES:
         raise HTTPException(status_code=404, detail="modele inconnu")
-    chemin = chemin_fichier(cle_modele, "metriques")
+    if horizon is not None:
+        if cle_modele not in MODELES_HORIZON_DEDIE or horizon not in HORIZONS_DEDIES:
+            raise HTTPException(status_code=400, detail="horizon indisponible pour ce modele")
+        chemin = chemin_fichier_horizon(cle_modele, horizon, "metriques")
+    else:
+        chemin = chemin_fichier(cle_modele, "metriques")
     if not os.path.isfile(chemin):
         return {}
     with open(chemin, "r") as fichier:
@@ -115,14 +127,22 @@ async def obtenir_metriques(cle_modele: str):
 
 
 @app.post("/reentrainer/{cle_modele}")
-async def declencher_reentrainement(cle_modele: str):
+async def declencher_reentrainement(cle_modele: str, horizon: Optional[int] = None):
     if cle_modele not in MODELES:
         raise HTTPException(status_code=404, detail="modele inconnu")
 
-    chemin_log = _chemin_journal_direct(f"reentrainement_{cle_modele}")
+    if horizon is not None and (cle_modele not in MODELES_HORIZON_DEDIE or horizon not in HORIZONS_DEDIES):
+        raise HTTPException(status_code=400, detail="horizon indisponible pour ce modele")
+
+    nom_journal_direct = f"reentrainement_{cle_modele}" if horizon is None else f"reentrainement_{cle_modele}_h{horizon}"
+    commande = [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele]
+    if horizon is not None:
+        commande += ["--horizon", str(horizon)]
+
+    chemin_log = _chemin_journal_direct(nom_journal_direct)
     with open(chemin_log, "w") as fichier_log:
         subprocess.Popen(
-            [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele],
+            commande,
             stdout=fichier_log, stderr=subprocess.STDOUT,
             start_new_session=True,
         )

@@ -1,0 +1,10 @@
+{
+  "Cible": "NbControles",
+  "Horizon": 30,
+  "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1 - J+30",
+  "RMSE": 25.343763784828898,
+  "MAE": 2.3126428263023233,
+  "MAPE": 81.63593768010769,
+  "WMAPE": 129.02824791944326,
+  "NbLignesTest": 2053359
+}

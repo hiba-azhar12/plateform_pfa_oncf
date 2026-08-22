@@ -9,7 +9,18 @@ import pandas as pd
 import psutil
 
 from config.chemins import HISTORIQUE, LOG_EXECUTION
-from config.modeles import LAGS, FENETRES_ROLLING, MODELES, chemin_fichier, chemin_modele
+from config.modeles import (
+    LAGS,
+    FENETRES_ROLLING,
+    MODELES,
+    MODELES_HORIZON_DEDIE,
+    HORIZONS_DEDIES,
+    chemin_fichier,
+    chemin_modele,
+    chemin_fichier_horizon,
+    chemin_modele_horizon,
+    dossier_horizon,
+)
 from utils.feature_engineering import (
     ajouter_lags_rolling_calendaires,
     calculer_encodage_expanding,
@@ -19,6 +30,7 @@ from utils.feature_engineering import (
 )
 from utils.inference import (
     CIBLES_TRAITEMENT,
+    charger_modele_horizon,
     charger_modele_simple,
     charger_modeles_categorie,
     colonnes_groupe_jour,
@@ -113,6 +125,43 @@ def construire_table_entrainement(cle_modele, historique):
         table[info["cible"]] = table[colonne_principale] / table[denominateur].replace(0, np.nan)
 
     _afficher_ram("fin construire_table_entrainement")
+    return table
+
+
+def construire_table_entrainement_horizon(cle_modele, horizon, historique):
+    traitement = CIBLES_TRAITEMENT[cle_modele]
+    groupe_liaison = colonnes_groupe_liaison(cle_modele)
+    groupe_jour = colonnes_groupe_jour(cle_modele)
+
+    _afficher_ram(f"h{horizon} - debut construire_table_entrainement_horizon")
+
+    table = historique.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True)
+    table["JourSemaine"] = pd.to_datetime(table["Date"]).dt.dayofweek
+    table["liaison_frequence"] = calculer_liaison_frequence(table, ["LiaisonId"])
+    _afficher_ram(f"h{horizon} - apres liaison_frequence")
+
+    _, colonne_cible_brute = traitement["completes"][0]
+    table["Cible"] = table.groupby(groupe_liaison, observed=True)[colonne_cible_brute].shift(-horizon)
+
+    toutes_cibles = traitement["completes"] + traitement["exogenes"]
+    for nom_suffixe, colonne_valeur in toutes_cibles:
+        table = ajouter_lags_rolling_calendaires(table, colonne_valeur, groupe_liaison, LAGS, FENETRES_ROLLING, nom_suffixe=nom_suffixe)
+        _afficher_ram(f"h{horizon} - apres lags_rolling_calendaires {nom_suffixe}")
+
+    for nom_suffixe, colonne_valeur in traitement["completes"]:
+        table[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(table, colonne_valeur, groupe_liaison)
+        table[f"interaction_jour_liaison_{nom_suffixe}"] = calculer_interaction_jour(table, colonne_valeur, groupe_jour)
+    _afficher_ram(f"h{horizon} - apres encodage et interaction")
+
+    avec_heure = MODELES[cle_modele]["granularite"] == "horaire"
+    calendaires = calculer_features_calendaires(
+        table["Date"], avec_heure=avec_heure, heures=table["Heure"] if avec_heure else None
+    )
+    colonnes_calendaires = [c for c in calendaires.columns if c not in ("Date", "Heure")]
+    table = table.reset_index(drop=True)
+    table[colonnes_calendaires] = calendaires[colonnes_calendaires].reset_index(drop=True)
+    _afficher_ram(f"h{horizon} - fin construire_table_entrainement_horizon")
+
     return table
 
 
@@ -335,7 +384,7 @@ def reentrainer(cle_modele):
     chemin_historique = _chemin_historique(cle_modele)
 
     if not os.path.isfile(chemin_historique):
-        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "echec", "erreur": "historique_absent"}
+        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": None, "statut": "echec", "erreur": "historique_absent"}
         _ecrire_log(resultat)
         return resultat
 
@@ -358,7 +407,7 @@ def reentrainer(cle_modele):
     _afficher_ram("apres dropna colonnes_attendues")
 
     if len(table) < 200:
-        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "echec", "erreur": "historique_insuffisant"}
+        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": None, "statut": "echec", "erreur": "historique_insuffisant"}
         _ecrire_log(resultat)
         return resultat
 
@@ -385,7 +434,7 @@ def reentrainer(cle_modele):
 
     if not accepte:
         resultat = {
-            "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "rejete",
+            "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": None, "statut": "rejete",
             "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
             "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
         }
@@ -411,7 +460,120 @@ def reentrainer(cle_modele):
     _ecrire_metriques(cle_modele, metriques_globales)
 
     resultat = {
-        "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "statut": "deploye",
+        "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": None, "statut": "deploye",
+        "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
+        "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
+    }
+    _ecrire_log(resultat)
+    return resultat
+
+
+def reentrainer_horizon(cle_modele, horizon):
+    info = MODELES[cle_modele]
+    horodatage = horodatage_maroc()
+
+    if cle_modele not in MODELES_HORIZON_DEDIE or horizon not in HORIZONS_DEDIES:
+        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": horizon, "statut": "echec", "erreur": "horizon_indisponible"}
+        _ecrire_log(resultat)
+        return resultat
+
+    specification = SPECIFICATIONS[cle_modele]
+    chemin_historique = _chemin_historique(cle_modele)
+
+    if not os.path.isfile(chemin_historique):
+        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": horizon, "statut": "echec", "erreur": "historique_absent"}
+        _ecrire_log(resultat)
+        return resultat
+
+    historique = pd.read_parquet(chemin_historique)
+    _afficher_ram(f"h{horizon} - apres lecture historique")
+
+    table = construire_table_entrainement_horizon(cle_modele, horizon, historique)
+    del historique
+    table = table.dropna(subset=["Cible"])
+    _afficher_ram(f"h{horizon} - apres dropna cible")
+
+    table, encodage = _encoder_liaison(cle_modele, table)
+    _afficher_ram(f"h{horizon} - apres encoder_liaison")
+
+    chemin_colonnes_existant = chemin_fichier_horizon(cle_modele, horizon, "colonnes_features")
+    if os.path.isfile(chemin_colonnes_existant):
+        colonnes_attendues = json.load(open(chemin_colonnes_existant))
+    else:
+        colonnes_exclues = {"Date", "Heure", "LiaisonId", "LiaisonId_code", info["cible"], "Cible"}
+        colonnes_attendues = [c for c in table.columns if c not in colonnes_exclues]
+
+    for colonne in colonnes_attendues:
+        if colonne not in table.columns:
+            table[colonne] = np.nan
+    table = table.dropna(subset=colonnes_attendues)
+    _afficher_ram(f"h{horizon} - apres dropna colonnes_attendues")
+
+    if len(table) < 200:
+        resultat = {"horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": horizon, "statut": "echec", "erreur": "historique_insuffisant"}
+        _ecrire_log(resultat)
+        return resultat
+
+    colonnes_modele = colonnes_attendues
+    date_coupure = _dates_coupure(table)
+
+    chemin_metriques_existant = chemin_fichier_horizon(cle_modele, horizon, "metriques")
+    anciennes_metriques = json.load(open(chemin_metriques_existant)) if os.path.isfile(chemin_metriques_existant) else None
+
+    train, valid = _separer_train_validation(table, date_coupure)
+    train = _sous_echantillonner(train, specification["taille_max"])
+
+    x_train, y_train = train[colonnes_modele], train["Cible"]
+    x_valid, y_valid = valid[colonnes_modele], valid["Cible"]
+
+    if specification["format"] == "catboost":
+        modele = _entrainer_catboost(x_train, y_train, x_valid, y_valid, specification["loss_function"])
+    else:
+        modele = _entrainer_lightgbm(x_train, y_train, x_valid, y_valid, specification["objectif_lgbm"], specification["params_supplementaires"])
+
+    predictions = np.clip(modele.predict(x_valid), 0, None)
+    metriques_globales = _calculer_metriques(y_valid, predictions)
+    metriques_globales["Cible"] = info["cible"]
+    metriques_globales["Horizon"] = horizon
+    metriques_globales["Modele"] = f"{info['libelle_court'].upper()} - REENTRAINEMENT AUTOMATIQUE - J+{horizon}"
+
+    rmse_ancien_meme_periode = None
+    if os.path.isfile(chemin_modele_horizon(cle_modele, horizon)) and len(valid) > 0:
+        ancien_modele = charger_modele_horizon(cle_modele, horizon)
+        predictions_ancien = np.clip(ancien_modele.predict(valid[colonnes_modele]), 0, None)
+        rmse_ancien_meme_periode = _calculer_metriques(y_valid, predictions_ancien)["RMSE"]
+
+    seuil_ancien = rmse_ancien_meme_periode
+    if seuil_ancien is None:
+        seuil_ancien = anciennes_metriques.get("RMSE") if anciennes_metriques else None
+
+    accepte = seuil_ancien is None or metriques_globales.get("RMSE") is None or metriques_globales["RMSE"] <= seuil_ancien * TOLERANCE_REGRESSION
+
+    if not accepte:
+        resultat = {
+            "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": horizon, "statut": "rejete",
+            "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
+            "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
+        }
+        _ecrire_log(resultat)
+        return resultat
+
+    os.makedirs(dossier_horizon(cle_modele, horizon), exist_ok=True)
+    _sauvegarder_modele(chemin_modele_horizon(cle_modele, horizon), modele, specification["format"])
+
+    if encodage is not None:
+        encodage.to_csv(chemin_fichier_horizon(cle_modele, horizon, "encodage_liaison"), index=False)
+
+    with open(chemin_fichier_horizon(cle_modele, horizon, "colonnes_features"), "w") as fichier:
+        json.dump(colonnes_modele, fichier, indent=2)
+
+    metriques_globales["DateReentrainement"] = horodatage
+    metriques_globales["NbLignesEntrainement"] = int(len(train))
+    with open(chemin_fichier_horizon(cle_modele, horizon, "metriques"), "w") as fichier:
+        json.dump(metriques_globales, fichier, indent=2)
+
+    resultat = {
+        "horodatage": horodatage, "type": "reentrainement", "cle_modele": cle_modele, "horizon": horizon, "statut": "deploye",
         "metriques_avant": anciennes_metriques, "metriques_apres": metriques_globales,
         "rmse_ancien_meme_periode": rmse_ancien_meme_periode,
     }
@@ -426,6 +588,13 @@ def reentrainer_tous():
             resultats[cle_modele] = reentrainer(cle_modele)
         except Exception as exception:
             resultats[cle_modele] = {"statut": "erreur", "erreur": str(exception)}
+    for cle_modele in MODELES_HORIZON_DEDIE:
+        for horizon in HORIZONS_DEDIES:
+            cle = f"{cle_modele}_h{horizon}"
+            try:
+                resultats[cle] = reentrainer_horizon(cle_modele, horizon)
+            except Exception as exception:
+                resultats[cle] = {"statut": "erreur", "erreur": str(exception)}
     return resultats
 
 
@@ -435,10 +604,13 @@ if __name__ == "__main__":
 
     analyseur = argparse.ArgumentParser()
     analyseur.add_argument("--modele", default=None)
+    analyseur.add_argument("--horizon", type=int, default=None)
     arguments = analyseur.parse_args()
 
     try:
-        if arguments.modele:
+        if arguments.modele and arguments.horizon:
+            print(json.dumps(reentrainer_horizon(arguments.modele, arguments.horizon), indent=2, default=str))
+        elif arguments.modele:
             print(json.dumps(reentrainer(arguments.modele), indent=2, default=str))
         else:
             print(json.dumps(reentrainer_tous(), indent=2, default=str))
@@ -447,6 +619,7 @@ if __name__ == "__main__":
             "horodatage": horodatage_maroc(),
             "type": "reentrainement",
             "cle_modele": arguments.modele,
+            "horizon": arguments.horizon,
             "statut": "erreur",
             "erreur": str(exception),
             "trace": traceback.format_exc(),

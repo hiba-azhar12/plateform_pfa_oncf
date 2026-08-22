@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from config.modeles import MODELES, chemin_fichier
+from config.modeles import MODELES, chemin_fichier, chemin_fichier_horizon
 
 
 def _existe(chemin):
@@ -36,8 +36,21 @@ def charger_parquet(cle_modele, cle_fichier):
     return pd.read_parquet(chemin)
 
 
+@st.cache_data(show_spinner=False)
+def charger_json_horizon(cle_modele, horizon, cle_fichier):
+    chemin = chemin_fichier_horizon(cle_modele, horizon, cle_fichier)
+    if not _existe(chemin):
+        return None
+    with open(chemin, "r") as fichier:
+        return json.load(fichier)
+
+
 def charger_metriques(cle_modele):
     return charger_json(cle_modele, "metriques") or {}
+
+
+def charger_metriques_horizon(cle_modele, horizon):
+    return charger_json_horizon(cle_modele, horizon, "metriques") or {}
 
 
 def charger_predictions(cle_modele):
@@ -259,13 +272,29 @@ def liaisons_ordonnees_nouvelles_predictions(cle_modele):
 
 
 @st.cache_data(show_spinner=False, ttl=60)
-def charger_predictions_nouvelles(cle_modele):
+def charger_predictions_nouvelles_multi_horizon(cle_modele):
     from config.chemins import PREDICTIONS_NOUVELLES
 
     chemin = os.path.join(PREDICTIONS_NOUVELLES, f"{cle_modele}.parquet")
     if not _existe(chemin):
         return pd.DataFrame()
-    return pd.read_parquet(chemin)
+    table = pd.read_parquet(chemin)
+    if table.empty:
+        return table
+    if "Horizon" not in table.columns:
+        table["Horizon"] = 1
+    table["Horizon"] = pd.to_numeric(table["Horizon"], errors="coerce").fillna(1).astype(int)
+    table["Date"] = pd.to_datetime(table["Date"])
+    return table
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_predictions_nouvelles(cle_modele):
+    table = charger_predictions_nouvelles_multi_horizon(cle_modele)
+    if table.empty:
+        return table
+    table_j1 = table[table["Horizon"] == 1].copy()
+    return table_j1.drop(columns=["Horizon", "DateAncrage"], errors="ignore").reset_index(drop=True)
 
 
 @st.cache_data(show_spinner=False, ttl=60)

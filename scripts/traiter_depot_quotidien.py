@@ -26,9 +26,9 @@ from config.chemins import (
     LOG_EXECUTION,
     PREDICTIONS_NOUVELLES,
 )
-from config.modeles import MODELES
+from config.modeles import HORIZONS_RECURSIFS, HORIZONS_DEDIES, MODELES, MODELES_HORIZON_DEDIE
 from utils.agregation import agreger_lot_quotidien
-from utils.inference import predire_nouvelle_date
+from utils.inference import predire_horizon_dedie, predire_horizons_recursifs
 from utils.temps import horodatage_maroc
 
 MOTIF_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
@@ -251,10 +251,17 @@ def _cles_dedoublonnage(cle_modele, table):
         cles.append("Heure")
     if info["famille"] == "composition" and info["colonne_categorie"] in table.columns:
         cles.append(info["colonne_categorie"])
+    if "Horizon" in table.columns:
+        cles.append("Horizon")
     return cles
 
 
 def _ecrire_predictions_nouvelles(cle_modele, table):
+    table = table.copy()
+    if "Horizon" not in table.columns:
+        table["Horizon"] = 1
+    table["Horizon"] = pd.to_numeric(table["Horizon"], errors="coerce").fillna(1).astype(int)
+
     cles = _cles_dedoublonnage(cle_modele, table)
     table = table.drop_duplicates(subset=cles, keep="last").sort_values(cles)
     os.makedirs(PREDICTIONS_NOUVELLES, exist_ok=True)
@@ -262,24 +269,24 @@ def _ecrire_predictions_nouvelles(cle_modele, table):
     return table
 
 
-def _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction):
+def _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelles_predictions):
     info = MODELES[cle_modele]
-    nouvelle_prediction = nouvelle_prediction.copy()
-    nouvelle_prediction["Reel"] = pd.NA
-    nouvelle_prediction["ErreurAbsolue"] = pd.NA
+    nouvelles_predictions = nouvelles_predictions.copy()
+    nouvelles_predictions["Reel"] = pd.NA
+    nouvelles_predictions["ErreurAbsolue"] = pd.NA
 
-    colonnes_gardees = ["Date", "LiaisonId", "Prediction", "DateCalculPrediction", "Reel", "ErreurAbsolue"]
+    colonnes_gardees = ["Date", "LiaisonId", "Prediction", "DateCalculPrediction", "DateAncrage", "Horizon", "Reel", "ErreurAbsolue"]
     if info["granularite"] == "horaire":
         colonnes_gardees.insert(2, "Heure")
-    if info["famille"] == "composition" and info["colonne_categorie"] in nouvelle_prediction.columns:
+    if info["famille"] == "composition" and info["colonne_categorie"] in nouvelles_predictions.columns:
         colonnes_gardees.insert(2, info["colonne_categorie"])
 
-    nouvelle_prediction = nouvelle_prediction[colonnes_gardees]
+    nouvelles_predictions = nouvelles_predictions[colonnes_gardees]
 
     if existantes is None or existantes.empty:
-        combine = nouvelle_prediction
+        combine = nouvelles_predictions
     else:
-        combine = pd.concat([existantes, nouvelle_prediction], ignore_index=True, sort=False)
+        combine = pd.concat([existantes, nouvelles_predictions], ignore_index=True, sort=False)
 
     return _ecrire_predictions_nouvelles(cle_modele, combine)
 
@@ -307,6 +314,36 @@ def _ecrire_log(entree):
     journal.append(entree)
     with open(LOG_EXECUTION, "w") as fichier:
         json.dump(journal, fichier, indent=2, default=str)
+
+
+def _predire_toutes_les_horizons(cle_modele, historique):
+    predictions = []
+    colonnes_manquantes_modele = {}
+    liaisons_inconnues_modele = {}
+
+    resultats_recursifs = predire_horizons_recursifs(cle_modele, HORIZONS_RECURSIFS, historique)
+    for horizon, (resultat, colonnes_manquantes, liaisons_inconnues) in resultats_recursifs.items():
+        if colonnes_manquantes:
+            colonnes_manquantes_modele[horizon] = colonnes_manquantes
+        if liaisons_inconnues:
+            liaisons_inconnues_modele[horizon] = liaisons_inconnues
+        predictions.append(resultat)
+    del resultats_recursifs
+    gc.collect()
+
+    if cle_modele in MODELES_HORIZON_DEDIE:
+        for horizon in HORIZONS_DEDIES:
+            resultat, colonnes_manquantes, liaisons_inconnues = predire_horizon_dedie(cle_modele, horizon, historique)
+            if colonnes_manquantes:
+                colonnes_manquantes_modele[horizon] = colonnes_manquantes
+            if liaisons_inconnues:
+                liaisons_inconnues_modele[horizon] = liaisons_inconnues
+            predictions.append(resultat)
+            gc.collect()
+
+    toutes_predictions = pd.concat(predictions, ignore_index=True, sort=False)
+    del predictions
+    return toutes_predictions, colonnes_manquantes_modele, liaisons_inconnues_modele
 
 
 def traiter_date(date_texte, retraitement=False):
@@ -341,16 +378,16 @@ def traiter_date(date_texte, retraitement=False):
         try:
             historique = pd.read_parquet(_chemin_historique(cle_modele))
 
-            nouvelle_prediction, colonnes_manquantes, liaisons_inconnues = predire_nouvelle_date(
-                cle_modele, date_suivante, historique
+            toutes_predictions, colonnes_manquantes_modele, liaisons_inconnues_modele = _predire_toutes_les_horizons(
+                cle_modele, historique
             )
-            if colonnes_manquantes:
-                colonnes_manquantes_totales[cle_modele] = colonnes_manquantes
-            if liaisons_inconnues:
-                liaisons_inconnues_totales[cle_modele] = liaisons_inconnues
+            if colonnes_manquantes_modele:
+                colonnes_manquantes_totales[cle_modele] = colonnes_manquantes_modele
+            if liaisons_inconnues_modele:
+                liaisons_inconnues_totales[cle_modele] = liaisons_inconnues_modele
 
-            _ajouter_nouvelle_prediction(cle_modele, existantes, nouvelle_prediction)
-            del historique, nouvelle_prediction
+            _ajouter_nouvelle_prediction(cle_modele, existantes, toutes_predictions)
+            del historique, toutes_predictions
             gc.collect()
             _afficher_ram(f"{cle_modele} - fin boucle")
         except Exception as exception:
@@ -365,6 +402,8 @@ def traiter_date(date_texte, retraitement=False):
     return {
         "date_traitee": date_texte,
         "date_predite": date_suivante.strftime("%Y-%m-%d"),
+        "horizons_recursifs": HORIZONS_RECURSIFS,
+        "horizons_dedies": HORIZONS_DEDIES,
         "colonnes_manquantes": colonnes_manquantes_totales,
         "liaisons_inconnues": liaisons_inconnues_totales,
         "erreurs_modeles": erreurs_modeles,

@@ -3,7 +3,7 @@ import time
 import requests
 import streamlit as st
 
-from config.modeles import MODELES
+from config.modeles import MODELES, MODELES_HORIZON_DEDIE, HORIZONS_DEDIES
 from utils.chargement import charger_log_execution, dernier_log_execution
 from utils.temps import horodatage_maroc
 
@@ -13,7 +13,7 @@ DELAI_MAXIMUM = 1500
 INTERVALLE = 3
 
 
-def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=False, cle_modele=None):
+def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=False, cle_modele=None, horizon=None):
     zone_log = st.empty()
     resultat_final = None
     temps_ecoule = 0
@@ -43,6 +43,7 @@ def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=Fals
                 and entree.get("statut") != "en_cours"
                 and entree.get("type") == "reentrainement"
                 and entree.get("cle_modele") == cle_modele
+                and entree.get("horizon") == horizon
             ]
         else:
             nouvelles_entrees = [
@@ -110,34 +111,70 @@ entrees_reentrainement = [entree for entree in journal if entree.get("type") == 
 
 lignes = []
 for cle_modele, info in MODELES.items():
-    entrees_modele = [entree for entree in entrees_reentrainement if entree.get("cle_modele") == cle_modele]
+    entrees_modele = [
+        entree for entree in entrees_reentrainement
+        if entree.get("cle_modele") == cle_modele and entree.get("horizon") is None
+    ]
     derniere = entrees_modele[-1] if entrees_modele else None
     lignes.append({
         "Modèle": info["libelle_court"],
+        "Horizon": "J+1",
         "Dernier réentraînement": derniere.get("horodatage") if derniere else "jamais",
         "Statut": derniere.get("statut") if derniere else "—",
         "RMSE avant": (derniere.get("metriques_avant") or {}).get("RMSE") if derniere else None,
         "RMSE après": (derniere.get("metriques_apres") or {}).get("RMSE") if derniere else None,
     })
 
-st.dataframe(lignes, use_container_width=True)
+    if cle_modele in MODELES_HORIZON_DEDIE:
+        for horizon in HORIZONS_DEDIES:
+            entrees_horizon = [
+                entree for entree in entrees_reentrainement
+                if entree.get("cle_modele") == cle_modele and entree.get("horizon") == horizon
+            ]
+            derniere_horizon = entrees_horizon[-1] if entrees_horizon else None
+            lignes.append({
+                "Modèle": info["libelle_court"],
+                "Horizon": f"J+{horizon}",
+                "Dernier réentraînement": derniere_horizon.get("horodatage") if derniere_horizon else "jamais",
+                "Statut": derniere_horizon.get("statut") if derniere_horizon else "—",
+                "RMSE avant": (derniere_horizon.get("metriques_avant") or {}).get("RMSE") if derniere_horizon else None,
+                "RMSE après": (derniere_horizon.get("metriques_apres") or {}).get("RMSE") if derniere_horizon else None,
+            })
+
+horizons_presents = sorted({ligne["Horizon"] for ligne in lignes}, key=lambda texte: int(texte[2:]))
+filtre_horizon = st.radio(
+    "Filtrer par horizon", options=["Tous"] + horizons_presents, horizontal=True, key="filtre_horizon_administration",
+)
+lignes_affichees = lignes if filtre_horizon == "Tous" else [ligne for ligne in lignes if ligne["Horizon"] == filtre_horizon]
+
+st.dataframe(lignes_affichees, use_container_width=True)
+
+options_reentrainement = []
+for cle_modele, info in MODELES.items():
+    options_reentrainement.append((info["libelle_court"], cle_modele, None))
+    if cle_modele in MODELES_HORIZON_DEDIE:
+        for horizon in HORIZONS_DEDIES:
+            options_reentrainement.append((f"{info['libelle_court']} — J+{horizon}", cle_modele, horizon))
 
 colonne_selection, colonne_bouton = st.columns([3, 1])
-cle_choisie = colonne_selection.selectbox(
-    "Modèle à réentraîner", options=list(MODELES.keys()),
-    format_func=lambda cle: MODELES[cle]["libelle_court"],
+choix_reentrainement = colonne_selection.selectbox(
+    "Modèle à réentraîner", options=options_reentrainement, format_func=lambda option: option[0],
 )
+cle_choisie, horizon_choisi = choix_reentrainement[1], choix_reentrainement[2]
+
 if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active):
     horodatage_avant = horodatage_maroc()
+    parametres = {"horizon": horizon_choisi} if horizon_choisi is not None else {}
+    nom_journal_direct = f"reentrainement_{cle_choisie}" if horizon_choisi is None else f"reentrainement_{cle_choisie}_h{horizon_choisi}"
     try:
-        requests.post(f"{URL_API}/reentrainer/{cle_choisie}", timeout=10)
+        requests.post(f"{URL_API}/reentrainer/{cle_choisie}", params=parametres, timeout=10)
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le reentrainement : {exception}")
     else:
         with st.spinner("Réentraînement en cours"):
             resultat_final = _attendre_resultat(
-                horodatage_avant, f"reentrainement_{cle_choisie}",
-                reentrainement=True, cle_modele=cle_choisie,
+                horodatage_avant, nom_journal_direct,
+                reentrainement=True, cle_modele=cle_choisie, horizon=horizon_choisi,
             )
 
         if resultat_final is None:

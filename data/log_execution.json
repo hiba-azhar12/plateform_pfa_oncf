@@ -2946,5 +2946,65 @@
       "NbLignesEntrainement": 224622
     },
     "rmse_ancien_meme_periode": 0.1602301615901905
+  },
+  {
+    "horodatage": "2026-08-22 15:48:45",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "horizon": 7,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE - J+7",
+      "RMSE": 6.2046928279373095,
+      "MAE": 0.9747004885107756,
+      "MAPE": 74.25312804467626,
+      "WMAPE": 63.48763880427357,
+      "NbLignesTest": 2083110
+    },
+    "metriques_apres": {
+      "RMSE": 6.203159632797206,
+      "MAE": 1.177559689430866,
+      "MedAE": 0.27834758264156245,
+      "WMAPE": 0.7068012098030105,
+      "NbLignesValidation": 1976622,
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-22 15:48:45",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 6.891104216872997
+  },
+  {
+    "horodatage": "2026-08-22 16:10:34",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.1597988915958753,
+      "MAE": 0.08572702191821252,
+      "MedAE": 0.05662714396006463,
+      "WMAPE": 0.16330839105789433,
+      "NbLignesValidation": 68097,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 12:14:29",
+      "NbLignesEntrainement": 224622
+    },
+    "metriques_apres": {
+      "RMSE": 0.1597988915958753,
+      "MAE": 0.08572702191821252,
+      "MedAE": 0.05662714396006463,
+      "WMAPE": 0.16330839105789433,
+      "NbLignesValidation": 68097,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 16:10:34",
+      "NbLignesEntrainement": 224622
+    },
+    "rmse_ancien_meme_periode": 0.1597988915958753
   }
 ]

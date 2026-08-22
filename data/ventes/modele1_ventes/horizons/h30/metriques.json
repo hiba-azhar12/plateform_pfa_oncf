@@ -1,0 +1,10 @@
+{
+  "Cible": "NbBillets",
+  "Horizon": 30,
+  "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE - J+30",
+  "RMSE": 6.520037174162182,
+  "MAE": 1.0224474134238382,
+  "MAPE": 75.75528152351045,
+  "WMAPE": 65.65082270650105,
+  "NbLignesTest": 2053359
+}

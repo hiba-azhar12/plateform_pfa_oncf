@@ -73,15 +73,17 @@ def appliquer_style():
         }}
 
         div[data-testid="stSidebarCollapsedControl"] {{
-            display: none !important;
-        }}
-
-        div[data-testid="stSidebarCollapseButton"] {{
-            display: none !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }}
 
         [data-testid="stSidebarResizeHandle"] {{
             display: none !important;
+        }}
+
+        [data-testid="stSidebarNavItems"] {{
+            max-height: none !important;
         }}
 
         div[data-testid="stElementContainer"]:has(style) {{
@@ -147,13 +149,7 @@ def appliquer_style():
             border-left: 3px solid transparent;
             border-radius: 0;
             padding-left: 12px;
-            padding-top: 9px;
-            padding-bottom: 9px;
             transition: border-color 0.15s ease, color 0.15s ease;
-        }}
-
-        section[data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(a[data-testid="stPageLink-NavLink"]) {{
-            margin-bottom: 2px;
         }}
 
         section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover,

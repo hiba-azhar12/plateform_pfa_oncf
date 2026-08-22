@@ -1,0 +1,5 @@
+{
+  "SeuilAnomalie": 13.414385044400557,
+  "Methode": "moyenne_plus_2_ecarts_types",
+  "Horizon": 15
+}

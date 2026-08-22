@@ -160,6 +160,69 @@ MODELES_PAR_DOMAINE = {
 LAGS = [1, 7, 14, 30, 365]
 FENETRES_ROLLING = [7, 14, 30]
 
+HORIZONS_RECURSIFS = [1, 2, 3, 4, 5, 6]
+HORIZONS_DEDIES = [7, 15, 30]
+MODELES_HORIZON_DEDIE = ["modele1_ventes", "modele3_controles"]
+
+FICHIERS_HORIZON_COMMUNS = {
+    "metriques": "metriques.json",
+    "seuil_anomalie": "seuil_anomalie.json",
+    "importance_features": "importance_features.csv",
+    "importance_shap": "importance_shap.csv",
+    "colonnes_features": "colonnes_features.json",
+    "colonnes_categorielles": "colonnes_categorielles.json",
+    "colonnes_calendaires": "colonnes_calendaires.json",
+    "encodage_liaison": "encodage_liaison.csv",
+    "comparaison_inter_annees": "comparaison_inter_annees.csv",
+    "calendrier_quotidien": "calendrier_quotidien.csv",
+    "saisonnalite": "saisonnalite_decomposition.csv",
+    "agregats_liaison_figes": "agregats_liaison_figes.csv",
+    "interaction_jour_liaison_figee": "interaction_jour_liaison_figee.csv",
+    "predictions_test": "predictions_test.parquet",
+}
+
+HISTORIQUE_BRUT_HORIZON = {
+    "modele1_ventes": "historique_brut_ventes.parquet",
+    "modele3_controles": "historique_brut_controles.parquet",
+}
+
+FICHIER_MODELE_HORIZON = {
+    "modele1_ventes": "modele_final.cbm",
+    "modele3_controles": "modele_final.txt",
+}
+
+
+def horizons_disponibles(cle_modele):
+    horizons = list(HORIZONS_RECURSIFS)
+    if cle_modele in MODELES_HORIZON_DEDIE:
+        horizons = horizons + list(HORIZONS_DEDIES)
+    return horizons
+
+
+def methode_horizon(cle_modele, horizon):
+    if horizon in HORIZONS_RECURSIFS:
+        return "recursif"
+    if cle_modele in MODELES_HORIZON_DEDIE and horizon in HORIZONS_DEDIES:
+        return "dedie"
+    raise ValueError(f"horizon {horizon} indisponible pour {cle_modele}")
+
+
+def dossier_horizon(cle_modele, horizon):
+    info = MODELES[cle_modele]
+    return os.path.join(info["dossier"], "horizons", f"h{horizon}")
+
+
+def chemin_fichier_horizon(cle_modele, horizon, cle_fichier):
+    if cle_fichier == "historique":
+        nom_fichier = HISTORIQUE_BRUT_HORIZON[cle_modele]
+    else:
+        nom_fichier = FICHIERS_HORIZON_COMMUNS[cle_fichier]
+    return os.path.join(dossier_horizon(cle_modele, horizon), nom_fichier)
+
+
+def chemin_modele_horizon(cle_modele, horizon):
+    return os.path.join(dossier_horizon(cle_modele, horizon), FICHIER_MODELE_HORIZON[cle_modele])
+
 
 def chemin_fichier(cle_modele, cle_fichier):
     info = MODELES[cle_modele]

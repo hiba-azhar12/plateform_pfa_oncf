@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 
@@ -5,7 +6,15 @@ import numpy as np
 import pandas as pd
 import psutil
 
-from config.modeles import LAGS, FENETRES_ROLLING, MODELES, chemin_fichier, chemin_modele
+from config.modeles import (
+    LAGS,
+    FENETRES_ROLLING,
+    MODELES,
+    chemin_fichier,
+    chemin_modele,
+    chemin_fichier_horizon,
+    chemin_modele_horizon,
+)
 from utils.feature_engineering import (
     ajouter_lags_rolling_calendaires,
     calculer_encodage_expanding,
@@ -57,6 +66,19 @@ def charger_encodage(cle_modele):
     return encodage
 
 
+def charger_colonnes_features_horizon(cle_modele, horizon):
+    return _lire_json(chemin_fichier_horizon(cle_modele, horizon, "colonnes_features")) or []
+
+
+def charger_encodage_horizon(cle_modele, horizon):
+    encodage = _lire_csv(chemin_fichier_horizon(cle_modele, horizon, "encodage_liaison"))
+    if not encodage.empty and "LiaisonId" in encodage.columns:
+        encodage["LiaisonId"] = (
+            encodage["LiaisonId"].astype(str).str.replace(r"\.0$", "", regex=True)
+        )
+    return encodage
+
+
 def colonnes_groupe_liaison(cle_modele):
     info = MODELES[cle_modele]
     base = ["LiaisonId", "Heure"] if info["granularite"] == "horaire" else ["LiaisonId"]
@@ -80,14 +102,15 @@ def generer_lignes_a_predire(cle_modele, date_cible, historique):
     return combinaisons
 
 
-def preparer_liaison_id(table, cle_modele, encodage):
-    info = MODELES[cle_modele]
+def preparer_liaison_id_generique(table, format_modele, colonnes_attendues, encodage):
     table = table.copy()
     table["LiaisonId_reel"] = table["LiaisonId"].astype(str)
 
-    if info["format_modele"] == "catboost":
+    if format_modele == "catboost":
         table["LiaisonId"] = table["LiaisonId"].map(str)
         return table, []
+
+    colonne_code = "LiaisonId_code" if "LiaisonId_code" in colonnes_attendues else "LiaisonId"
 
     if encodage.empty or "LiaisonId" not in encodage.columns:
         codes_factorises, _ = pd.factorize(table["LiaisonId"].astype(str))
@@ -102,11 +125,16 @@ def preparer_liaison_id(table, cle_modele, encodage):
     table = table.loc[masque_connu].copy()
     codes = codes.loc[masque_connu]
 
-    if info["multi_categorie"]:
+    if colonne_code == "LiaisonId_code":
         table["LiaisonId_code"] = codes.astype("int32")
     else:
         table["LiaisonId"] = codes.astype("int32")
     return table, liaisons_inconnues
+
+
+def preparer_liaison_id(table, cle_modele, encodage, colonnes_attendues):
+    info = MODELES[cle_modele]
+    return preparer_liaison_id_generique(table, info["format_modele"], colonnes_attendues, encodage)
 
 
 def construire_features(cle_modele, date_cible, historique):
@@ -186,10 +214,10 @@ def construire_features(cle_modele, date_cible, historique):
     table = table.reset_index(drop=True)
     table[colonnes_calendaires_a_ajouter] = calendaires[colonnes_calendaires_a_ajouter].reset_index(drop=True)
 
-    encodage = charger_encodage(cle_modele)
-    table, liaisons_inconnues = preparer_liaison_id(table, cle_modele, encodage)
-
     colonnes_attendues = charger_colonnes_features(cle_modele)
+    encodage = charger_encodage(cle_modele)
+    table, liaisons_inconnues = preparer_liaison_id(table, cle_modele, encodage, colonnes_attendues)
+
     colonnes_manquantes = [colonne for colonne in colonnes_attendues if colonne not in table.columns]
     for colonne in colonnes_manquantes:
         table[colonne] = np.nan
@@ -198,9 +226,78 @@ def construire_features(cle_modele, date_cible, historique):
     return table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues
 
 
+def construire_features_horizon_dedie(cle_modele, horizon, historique):
+    info = MODELES[cle_modele]
+    traitement = CIBLES_TRAITEMENT[cle_modele]
+    groupe_liaison = colonnes_groupe_liaison(cle_modele)
+    groupe_jour = colonnes_groupe_jour(cle_modele)
+
+    _afficher_ram(f"{cle_modele} h{horizon} - debut construire_features_horizon_dedie")
+
+    date_ancrage = pd.to_datetime(historique["Date"]).max()
+
+    table = historique.sort_values(groupe_liaison + ["Date"]).reset_index(drop=True).copy()
+    table["Date"] = pd.to_datetime(table["Date"])
+    table["JourSemaine"] = table["Date"].dt.dayofweek
+    table["liaison_frequence"] = calculer_liaison_frequence(table, ["LiaisonId"])
+
+    toutes_cibles = traitement["completes"] + traitement["exogenes"]
+
+    for nom_suffixe, colonne_valeur in traitement["completes"]:
+        table[f"liaison_cible_encodage_{nom_suffixe}"] = calculer_encodage_expanding(table, colonne_valeur, groupe_liaison)
+        table[f"interaction_jour_liaison_{nom_suffixe}"] = calculer_interaction_jour(table, colonne_valeur, groupe_jour)
+    _afficher_ram(f"{cle_modele} h{horizon} - apres encodage et interaction")
+
+    date_limite = date_ancrage - pd.Timedelta(days=FENETRE_LAGS_JOURS)
+    table = table[table["Date"] >= date_limite].reset_index(drop=True)
+    _afficher_ram(f"{cle_modele} h{horizon} - apres restriction fenetre {FENETRE_LAGS_JOURS}j")
+
+    for nom_suffixe, colonne_valeur in toutes_cibles:
+        table = ajouter_lags_rolling_calendaires(
+            table, colonne_valeur, groupe_liaison, LAGS, FENETRES_ROLLING, nom_suffixe=nom_suffixe
+        )
+        _afficher_ram(f"{cle_modele} h{horizon} - apres lags_rolling_calendaires {nom_suffixe}")
+
+    table = table[table["Date"] == date_ancrage].copy()
+
+    if "Heure" in table.columns:
+        table["Heure"] = table["Heure"].astype(int)
+
+    avec_heure = "Heure" in table.columns
+    calendaires = calculer_features_calendaires(
+        table["Date"], avec_heure=avec_heure, heures=table["Heure"] if avec_heure else None
+    )
+    colonnes_calendaires_a_ajouter = [c for c in calendaires.columns if c not in ("Date", "Heure")]
+    table = table.reset_index(drop=True)
+    table[colonnes_calendaires_a_ajouter] = calendaires[colonnes_calendaires_a_ajouter].reset_index(drop=True)
+
+    colonnes_attendues = charger_colonnes_features_horizon(cle_modele, horizon)
+    encodage = charger_encodage_horizon(cle_modele, horizon)
+    table, liaisons_inconnues = preparer_liaison_id_generique(table, info["format_modele"], colonnes_attendues, encodage)
+
+    colonnes_manquantes = [colonne for colonne in colonnes_attendues if colonne not in table.columns]
+    for colonne in colonnes_manquantes:
+        table[colonne] = np.nan
+
+    _afficher_ram(f"{cle_modele} h{horizon} - fin construire_features_horizon_dedie")
+    return table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues, date_ancrage
+
+
 def charger_modele_simple(cle_modele):
     info = MODELES[cle_modele]
     chemin = chemin_modele(cle_modele)
+    if info["format_modele"] == "catboost":
+        from catboost import CatBoostRegressor
+        modele = CatBoostRegressor()
+        modele.load_model(chemin)
+        return modele
+    import lightgbm as lgb
+    return lgb.Booster(model_file=chemin)
+
+
+def charger_modele_horizon(cle_modele, horizon):
+    info = MODELES[cle_modele]
+    chemin = chemin_modele_horizon(cle_modele, horizon)
     if info["format_modele"] == "catboost":
         from catboost import CatBoostRegressor
         modele = CatBoostRegressor()
@@ -267,3 +364,127 @@ def predire_nouvelle_date(cle_modele, date_cible, historique):
     resultat = predire(cle_modele, table, colonnes_attendues)
     resultat["DateCalculPrediction"] = pd.Timestamp.now().normalize()
     return resultat, colonnes_manquantes, liaisons_inconnues
+
+
+def predire_horizon_dedie(cle_modele, horizon, historique):
+    info = MODELES[cle_modele]
+    table, colonnes_attendues, colonnes_manquantes, liaisons_inconnues, date_ancrage = construire_features_horizon_dedie(
+        cle_modele, horizon, historique
+    )
+
+    modele = charger_modele_horizon(cle_modele, horizon)
+    predictions = np.clip(modele.predict(table[colonnes_attendues]), 0, None)
+
+    resultat = table.copy()
+    resultat["Prediction"] = predictions
+
+    if "LiaisonId_reel" in resultat.columns:
+        resultat["LiaisonId"] = resultat["LiaisonId_reel"]
+        resultat = resultat.drop(columns=["LiaisonId_reel"])
+    if "LiaisonId_code" in resultat.columns:
+        resultat = resultat.drop(columns=["LiaisonId_code"])
+
+    resultat["DateAncrage"] = date_ancrage
+    resultat["Date"] = date_ancrage + pd.Timedelta(days=horizon)
+    resultat["Horizon"] = horizon
+    resultat["DateCalculPrediction"] = pd.Timestamp.now().normalize()
+
+    return resultat, colonnes_manquantes, liaisons_inconnues
+
+
+def _proxy_denominateur(cle_modele, table_predite):
+    info = MODELES[cle_modele]
+    denominateur = info.get("cible_denominateur")
+    if denominateur is not None and denominateur in table_predite.columns:
+        return table_predite[denominateur]
+    return None
+
+
+def _volume_total_par_liaison(cle_modele, historique):
+    traitement = CIBLES_TRAITEMENT[cle_modele]
+    colonne_volume = traitement["completes"][0][1]
+    historique = historique.copy()
+    historique["Date"] = pd.to_datetime(historique["Date"])
+    derniere_date = historique["Date"].max()
+    recent = historique[historique["Date"] == derniere_date]
+    totaux = recent.groupby(recent["LiaisonId"].astype(str))[colonne_volume].sum()
+    return totaux.astype(float).to_dict()
+
+
+def _valeur_completes_a_injecter(cle_modele, table_predite, proxy_volume_total):
+    info = MODELES[cle_modele]
+
+    if info["famille"] == "comptages":
+        return table_predite["Prediction"]
+
+    if info["famille"] == "taux":
+        proxy = _proxy_denominateur(cle_modele, table_predite)
+        if proxy is not None:
+            return table_predite["Prediction"] * proxy
+        return table_predite["Prediction"]
+
+    if info["famille"] == "composition":
+        liaisons = table_predite["LiaisonId"].astype(str)
+        totaux = liaisons.map(proxy_volume_total or {}).fillna(0.0)
+        return table_predite["Prediction"] * totaux
+
+    return table_predite["Prediction"]
+
+
+def _construire_ligne_injection(cle_modele, table_predite, valeurs_completes):
+    info = MODELES[cle_modele]
+    traitement = CIBLES_TRAITEMENT[cle_modele]
+
+    colonnes_cles = ["Date", "LiaisonId"]
+    if info["granularite"] == "horaire":
+        colonnes_cles.append("Heure")
+    if info["famille"] == "composition":
+        colonnes_cles.append(info["colonne_categorie"])
+
+    ligne = table_predite[colonnes_cles].copy()
+    ligne = ligne.reset_index(drop=True)
+
+    _, colonne_completes_principale = traitement["completes"][0]
+    ligne[colonne_completes_principale] = valeurs_completes.reset_index(drop=True).values
+
+    for nom_suffixe, colonne_exogene in traitement["exogenes"]:
+        if colonne_exogene in table_predite.columns:
+            ligne[colonne_exogene] = table_predite[colonne_exogene].reset_index(drop=True).values
+
+    ligne[info["cible"]] = table_predite["Prediction"].reset_index(drop=True).values
+
+    return ligne
+
+
+def predire_horizons_recursifs(cle_modele, horizons, historique):
+    info = MODELES[cle_modele]
+    historique_etendu = historique.copy()
+    historique_etendu["Date"] = pd.to_datetime(historique_etendu["Date"])
+    date_ancrage = historique_etendu["Date"].max()
+
+    proxy_volume_total = None
+    if info["famille"] == "composition":
+        proxy_volume_total = _volume_total_par_liaison(cle_modele, historique)
+
+    horizons_tries = sorted(horizons)
+    resultats = {}
+
+    for indice, horizon in enumerate(horizons_tries):
+        date_cible = date_ancrage + pd.Timedelta(days=horizon)
+
+        resultat, colonnes_manquantes, liaisons_inconnues = predire_nouvelle_date(cle_modele, date_cible, historique_etendu)
+        resultat = resultat.copy()
+        resultat["DateAncrage"] = date_ancrage
+        resultat["Horizon"] = horizon
+
+        resultats[horizon] = (resultat, colonnes_manquantes, liaisons_inconnues)
+
+        if indice < len(horizons_tries) - 1:
+            valeurs_completes = _valeur_completes_a_injecter(cle_modele, resultat, proxy_volume_total)
+            ligne_injectee = _construire_ligne_injection(cle_modele, resultat, valeurs_completes)
+            historique_etendu = pd.concat([historique_etendu, ligne_injectee], ignore_index=True, sort=False)
+
+        gc.collect()
+        _afficher_ram(f"{cle_modele} - fin horizon recursif {horizon}")
+
+    return resultats
