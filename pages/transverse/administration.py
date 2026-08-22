@@ -5,7 +5,6 @@ import streamlit as st
 
 from config.modeles import MODELES, MODELES_HORIZON_DEDIE, HORIZONS_DEDIES
 from utils.chargement import charger_log_execution, dernier_log_execution
-from utils.temps import horodatage_maroc
 
 URL_API = "http://localhost:8000"
 
@@ -13,7 +12,7 @@ DELAI_MAXIMUM = 1500
 INTERVALLE = 3
 
 
-def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=False, cle_modele=None, horizon=None):
+def _attendre_resultat(id_declenchement, nom_journal_direct):
     zone_log = st.empty()
     resultat_final = None
     temps_ecoule = 0
@@ -36,25 +35,15 @@ def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=Fals
         except requests.exceptions.RequestException:
             continue
 
-        if reentrainement:
-            nouvelles_entrees = [
-                entree for entree in journal
-                if entree.get("horodatage", "") > horodatage_avant
-                and entree.get("statut") != "en_cours"
-                and entree.get("type") == "reentrainement"
-                and entree.get("cle_modele") == cle_modele
-                and entree.get("horizon") == horizon
-            ]
-        else:
-            nouvelles_entrees = [
-                entree for entree in journal
-                if entree.get("horodatage", "") > horodatage_avant
-                and entree.get("statut") != "en_cours"
-                and entree.get("type") != "reentrainement"
-            ]
+        nouvelles_entrees = [
+            entree for entree in journal
+            if entree.get("id_declenchement") == id_declenchement
+            and entree.get("statut") != "en_cours"
+        ]
 
         if nouvelles_entrees:
             resultat_final = nouvelles_entrees[-1]
+            zone_log.empty()
             break
 
     return resultat_final
@@ -85,14 +74,14 @@ else:
         colonne3.metric("Date traitée", dernier.get("date_traitee", "—"))
 
 if st.button("Forcer le traitement"):
-    horodatage_avant = horodatage_maroc()
     try:
-        requests.post(f"{URL_API}/traiter-quotidien", timeout=10)
+        reponse_declenchement = requests.post(f"{URL_API}/traiter-quotidien", timeout=10)
+        id_declenchement = reponse_declenchement.json()["id_declenchement"]
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le traitement : {exception}")
     else:
         with st.spinner("Traitement en cours..."):
-            resultat_final = _attendre_resultat(horodatage_avant, "traitement")
+            resultat_final = _attendre_resultat(id_declenchement, "traitement")
 
         if resultat_final is None:
             st.warning("Le traitement met plus de temps que prevu. Verifie l'onglet etat du pipeline plus tard.")
@@ -163,19 +152,16 @@ choix_reentrainement = colonne_selection.selectbox(
 cle_choisie, horizon_choisi = choix_reentrainement[1], choix_reentrainement[2]
 
 if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active):
-    horodatage_avant = horodatage_maroc()
     parametres = {"horizon": horizon_choisi} if horizon_choisi is not None else {}
     nom_journal_direct = f"reentrainement_{cle_choisie}" if horizon_choisi is None else f"reentrainement_{cle_choisie}_h{horizon_choisi}"
     try:
-        requests.post(f"{URL_API}/reentrainer/{cle_choisie}", params=parametres, timeout=10)
+        reponse_declenchement = requests.post(f"{URL_API}/reentrainer/{cle_choisie}", params=parametres, timeout=10)
+        id_declenchement = reponse_declenchement.json()["id_declenchement"]
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le reentrainement : {exception}")
     else:
         with st.spinner("Réentraînement en cours"):
-            resultat_final = _attendre_resultat(
-                horodatage_avant, nom_journal_direct,
-                reentrainement=True, cle_modele=cle_choisie, horizon=horizon_choisi,
-            )
+            resultat_final = _attendre_resultat(id_declenchement, nom_journal_direct)
 
         if resultat_final is None:
             st.warning("Le reentrainement met plus de temps que prevu. Verifie le tableau ci-dessus plus tard.")

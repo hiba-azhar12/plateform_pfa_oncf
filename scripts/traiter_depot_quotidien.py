@@ -33,6 +33,8 @@ from utils.temps import horodatage_maroc
 
 MOTIF_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
+ID_DECLENCHEMENT = None
+
 
 def _afficher_ram(etiquette):
     print(f"[RAM] {etiquette} : {round(psutil.Process().memory_info().rss / 1e9, 2)} Go", flush=True)
@@ -306,6 +308,8 @@ def _archiver_fichiers(chemins):
 
 
 def _ecrire_log(entree):
+    if ID_DECLENCHEMENT:
+        entree = {**entree, "id_declenchement": ID_DECLENCHEMENT}
     os.makedirs(os.path.dirname(LOG_EXECUTION), exist_ok=True)
     journal = []
     if os.path.isfile(LOG_EXECUTION):
@@ -460,4 +464,12 @@ def executer():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    analyseur = argparse.ArgumentParser()
+    analyseur.add_argument("--id-declenchement", default=None)
+    arguments = analyseur.parse_args()
+
+    ID_DECLENCHEMENT = arguments.id_declenchement
+
     executer()

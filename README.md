@@ -17,6 +17,7 @@ chmod +x scripts/lancer_api.sh
 ./scripts/lancer_api.sh
 free -h
 python scripts/traiter_depot_quotidien.py
+python scripts/reentrainer_modeles.py --modele modele1_ventes --horizon 7
 
 sudo apt-get update && sudo apt-get install -y git-lfs
 git lfs install

@@ -340,31 +340,35 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
             "L'historique complet des journées réconciliées vit dans les dashboards Ventes / Contrôles."
         )
 
-        sous_reel_reconciliation = donnees_multi[
-            (donnees_multi["Horizon"] == 1) & (donnees_multi["Date"].dt.date == date_affichee_reconciliation)
+        if historique.empty or colonne_valeur not in historique.columns:
+            st.info("Historique insuffisant pour cette comparaison.")
+            continue
+
+        sous_reel_reconciliation = historique[
+            historique["Date"].dt.date == date_affichee_reconciliation
         ]
         selection_reelle_reconciliation = _filtrer(sous_reel_reconciliation).copy()
 
-        if selection_reelle_reconciliation.empty or selection_reelle_reconciliation["Reel"].notna().sum() == 0:
+        if selection_reelle_reconciliation.empty or selection_reelle_reconciliation[colonne_valeur].notna().sum() == 0:
             st.info(f"Aucune valeur réelle disponible pour le {date_affichee_reconciliation.strftime('%d/%m/%Y')}.")
             continue
 
         if liaison_est_all:
-            agrege_reel_reconciliation = selection_reelle_reconciliation.groupby("LiaisonId", as_index=False)["Reel"].agg(fonction_agg)
-            agrege_reel_reconciliation = agrege_reel_reconciliation.sort_values("Reel", ascending=False)
+            agrege_reel_reconciliation = selection_reelle_reconciliation.groupby("LiaisonId", as_index=False)[colonne_valeur].agg(fonction_agg)
+            agrege_reel_reconciliation = agrege_reel_reconciliation.sort_values(colonne_valeur, ascending=False)
 
             colonne_un, colonne_deux = st.columns(2)
             with colonne_un:
                 st.metric("Liaisons concernées", len(agrege_reel_reconciliation))
             with colonne_deux:
-                st.metric(f"{libelle_agregat} réel", _formater_valeur(agrege_reel_reconciliation["Reel"].agg(fonction_agg), info["famille"]))
+                st.metric(f"{libelle_agregat} réel", _formater_valeur(agrege_reel_reconciliation[colonne_valeur].agg(fonction_agg), info["famille"]))
 
             top_liaisons_reconciliation = agrege_reel_reconciliation.head(25)["LiaisonId"].tolist()
             top_liaisons_affichees_reconciliation = [nom_liaison(liaison) for liaison in top_liaisons_reconciliation]
             figure_r = go.Figure()
             figure_r.add_trace(go.Bar(
                 x=top_liaisons_affichees_reconciliation,
-                y=agrege_reel_reconciliation.set_index("LiaisonId").reindex(top_liaisons_reconciliation)["Reel"],
+                y=agrege_reel_reconciliation.set_index("LiaisonId").reindex(top_liaisons_reconciliation)[colonne_valeur],
                 marker_color=PALETTE["navy"],
             ))
             _mise_en_forme(figure_r, titre=f"{titre_base} — {date_affichee_reconciliation.strftime('%d/%m/%Y')}", hauteur=400, afficher_legende=False)
@@ -374,17 +378,17 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
 
         elif granularite_horaire and heure_est_all:
             serie_reelle_reconciliation = selection_reelle_reconciliation.sort_values("Heure")
-            total_reel_reconciliation = serie_reelle_reconciliation["Reel"].agg(fonction_agg)
+            total_reel_reconciliation = serie_reelle_reconciliation[colonne_valeur].agg(fonction_agg)
 
             st.metric(f"{libelle_agregat} réel", _formater_valeur(total_reel_reconciliation, info["famille"]))
 
             figure_h = go.Figure()
-            figure_h.add_trace(go.Bar(x=serie_reelle_reconciliation["Heure"], y=serie_reelle_reconciliation["Reel"], marker_color=PALETTE["navy"]))
+            figure_h.add_trace(go.Bar(x=serie_reelle_reconciliation["Heure"], y=serie_reelle_reconciliation[colonne_valeur], marker_color=PALETTE["navy"]))
             _mise_en_forme(figure_h, titre=f"{titre_base} — {date_affichee_reconciliation.strftime('%d/%m/%Y')}", hauteur=360, afficher_legende=False)
             figure_h.update_xaxes(title_text="Heure", type="category")
             figure_h.update_yaxes(title_text=info["libelle_court"])
             st.plotly_chart(figure_h, use_container_width=True)
 
         else:
-            valeur_reelle_reconciliation = selection_reelle_reconciliation.iloc[0]["Reel"]
+            valeur_reelle_reconciliation = selection_reelle_reconciliation[colonne_valeur].agg(fonction_agg)
             st.metric("Réel", _formater_valeur(valeur_reelle_reconciliation, info["famille"]) if pd.notna(valeur_reelle_reconciliation) else "en attente")

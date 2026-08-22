@@ -41,6 +41,8 @@ from utils.temps import horodatage_maroc
 TOLERANCE_REGRESSION = 1.1
 PART_VALIDATION = 0.15
 
+ID_DECLENCHEMENT = None
+
 PARAMETRES_LIGHTGBM_BASE = dict(
     n_estimators=1000, learning_rate=0.05, num_leaves=63, max_depth=8,
     subsample=0.8, colsample_bytree=0.8, min_child_samples=20,
@@ -367,6 +369,8 @@ def _ecrire_metriques(cle_modele, metriques):
 
 
 def _ecrire_log(entree):
+    if ID_DECLENCHEMENT:
+        entree = {**entree, "id_declenchement": ID_DECLENCHEMENT}
     os.makedirs(os.path.dirname(LOG_EXECUTION), exist_ok=True)
     journal = []
     if os.path.isfile(LOG_EXECUTION):
@@ -605,7 +609,10 @@ if __name__ == "__main__":
     analyseur = argparse.ArgumentParser()
     analyseur.add_argument("--modele", default=None)
     analyseur.add_argument("--horizon", type=int, default=None)
+    analyseur.add_argument("--id-declenchement", default=None)
     arguments = analyseur.parse_args()
+
+    ID_DECLENCHEMENT = arguments.id_declenchement
 
     try:
         if arguments.modele and arguments.horizon:
