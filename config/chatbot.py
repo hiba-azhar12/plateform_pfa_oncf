@@ -53,7 +53,7 @@ MOTS_CLES_MODELE = {
         "billet vendu", "billets vendus", "nombre de billets", "ventes de billets", "billets",
     ],
     "modele2_taux_vente_guichet": [
-        "taux de vente", "taux vente guichet", "vente guichet", "guichet",
+        "taux de vente", "taux vente pda", "vente pda", "pda",
     ],
     "modele4_part_confort": [
         "confort", "classe de confort", "niveau de confort", "repartition confort", "part confort",

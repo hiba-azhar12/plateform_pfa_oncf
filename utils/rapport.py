@@ -8,7 +8,7 @@ from config.chemins import RAPPORTS
 from config.modeles import MODELES, MODELES_PAR_DOMAINE
 from utils.chargement import (
     charger_anomalies,
-    charger_comparaison_inter_annees,
+    charger_comparaison_inter_annees_dynamique,
     charger_metriques,
     charger_predictions,
     charger_predictions_nouvelles,
@@ -21,6 +21,7 @@ from utils.graphiques_rapport import (
     graphique_repartition_categorie,
     graphique_serie_temporelle,
 )
+from utils.liaisons import nom_liaison
 from utils.style import CHEMIN_LOGO_ONCF, CHEMIN_LOGO_TRAIN, PALETTE
 from utils.texte import severite_anomalie
 
@@ -146,6 +147,16 @@ class RapportONCF(FPDF):
             x += largeur_carte + marge_carte
         self.set_xy(MARGE, y + hauteur + 6)
 
+    def _tronquer_pour_largeur(self, valeur, largeur_mm):
+        valeur = str(valeur)
+        largeur_disponible = largeur_mm - 2
+        if self.get_string_width(valeur) <= largeur_disponible:
+            return valeur
+        tronque = valeur
+        while tronque and self.get_string_width(tronque + "...") > largeur_disponible:
+            tronque = tronque[:-1]
+        return f"{tronque}..." if tronque else valeur[:1]
+
     def tableau(self, colonnes, lignes, largeurs=None):
         nombre = len(colonnes)
         if largeurs is None:
@@ -155,12 +166,12 @@ class RapportONCF(FPDF):
         self.set_text_color(*_rgb(PALETTE["text"]))
         self.set_draw_color(*_rgb(PALETTE["border"]))
         for entete, largeur in zip(colonnes, largeurs):
-            self.cell(largeur, 7, entete, border=1, fill=True, align="L")
+            self.cell(largeur, 7, self._tronquer_pour_largeur(entete, largeur), border=1, fill=True, align="L")
         self.ln()
         self.set_font("Helvetica", "", 8.5)
         for ligne in lignes:
             for valeur, largeur in zip(ligne, largeurs):
-                self.cell(largeur, 6.5, _texte_court(valeur, 32), border=1)
+                self.cell(largeur, 6.5, self._tronquer_pour_largeur(valeur, largeur), border=1)
             self.ln()
         self.ln(4)
 
@@ -256,7 +267,7 @@ def _repartition_categorie(cle_modele):
 
 def _comparaison_annuelle(cle_modele):
     info = MODELES[cle_modele]
-    donnees = charger_comparaison_inter_annees(cle_modele)
+    donnees = charger_comparaison_inter_annees_dynamique(cle_modele)
     colonnes_requises = {"Annee", "Mois", info["cible"]}
     if donnees.empty or not colonnes_requises.issubset(donnees.columns):
         return None
@@ -340,13 +351,13 @@ def _section_modele(document, cle_modele, accent="navy"):
         document.ln(1)
         colonne_cible_libelle = info["cible"]
         lignes = [
-            [ligne["Date"], ligne["LiaisonId"], round(ligne[colonne_cible_libelle], 2), round(ligne["Prediction"], 2), round(ligne["ErreurAbsolue"], 2)]
+            [ligne["Date"], nom_liaison(ligne["LiaisonId"]), round(ligne[colonne_cible_libelle], 2), round(ligne["Prediction"], 2), round(ligne["ErreurAbsolue"], 2)]
             for _, ligne in top_liaisons.iterrows()
         ]
         document.tableau(
             ["Date", "Liaison", "Réel", "Prédiction", "Écart absolu"],
             lignes,
-            largeurs=[32, 30, 34, 40, 44],
+            largeurs=[24, 68, 26, 28, 34],
         )
     else:
         document.ln(2)
@@ -400,7 +411,7 @@ def generer_rapport_hebdomadaire():
     document.multi_cell(LARGEUR_UTILE, 6, phrase)
 
     document.add_page()
-    document.titre_section("Ventes", "Billets vendus, taux de vente guichet, répartition par confort")
+    document.titre_section("Ventes", "Billets vendus, taux de vente PDA, répartition par confort")
     for cle_modele in MODELES_PAR_DOMAINE["ventes"]:
         _section_modele(document, cle_modele)
         document.ln(4)
@@ -417,13 +428,13 @@ def generer_rapport_hebdomadaire():
     consolide = _anomalies_consolidees()
     if not consolide.empty:
         lignes = [
-            [ligne["Modele"], ligne["Date"], ligne["LiaisonId"], round(ligne["Ecart"], 2), LIBELLES_SEVERITE.get(ligne["Severite"], ligne["Severite"])]
+            [ligne["Modele"], ligne["Date"], nom_liaison(ligne["LiaisonId"]), round(ligne["Ecart"], 2), LIBELLES_SEVERITE.get(ligne["Severite"], ligne["Severite"])]
             for _, ligne in consolide.iterrows()
         ]
         document.tableau(
             ["Modèle", "Date", "Liaison", "Écart (préd. - réel)", "Sévérité"],
             lignes,
-            largeurs=[46, 30, 26, 46, 32],
+            largeurs=[34, 22, 58, 46, 20],
         )
         chemin_histogramme = graphique_histogramme(consolide["Ecart"].tolist(), "Distribution des écarts (anomalies consolidées)")
         document.inserer_image(chemin_histogramme)

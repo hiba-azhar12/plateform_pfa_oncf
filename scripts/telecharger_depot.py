@@ -10,6 +10,9 @@ from config.chemins import (
     DEPOT_QUOTIDIEN_CIRCULATION,
     DEPOT_QUOTIDIEN_CONTROLES,
     DEPOT_QUOTIDIEN_VENTES,
+    DEPOT_TRAITE_CIRCULATION,
+    DEPOT_TRAITE_CONTROLES,
+    DEPOT_TRAITE_VENTES,
     LIEN_DOSSIER_DRIVE,
 )
 
@@ -17,6 +20,12 @@ PREFIXES_VERS_DOSSIER = {
     "ventes_": DEPOT_QUOTIDIEN_VENTES,
     "controles_": DEPOT_QUOTIDIEN_CONTROLES,
     "circulation_": DEPOT_QUOTIDIEN_CIRCULATION,
+}
+
+PREFIXES_VERS_DOSSIER_TRAITE = {
+    "ventes_": DEPOT_TRAITE_VENTES,
+    "controles_": DEPOT_TRAITE_CONTROLES,
+    "circulation_": DEPOT_TRAITE_CIRCULATION,
 }
 
 
@@ -37,7 +46,8 @@ def telecharger_nouveaux_fichiers():
                 if nom_fichier.startswith(prefixe):
                     source = os.path.join(racine_courante, nom_fichier)
                     destination = os.path.join(dossier_cible, nom_fichier)
-                    if not os.path.isfile(destination):
+                    destination_traitee = os.path.join(PREFIXES_VERS_DOSSIER_TRAITE[prefixe], nom_fichier)
+                    if not os.path.isfile(destination) and not os.path.isfile(destination_traitee):
                         shutil.move(source, destination)
                         fichiers_deplaces.append(nom_fichier)
                     break

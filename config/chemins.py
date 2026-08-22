@@ -16,6 +16,9 @@ PREDICTIONS_NOUVELLES = os.path.join(DONNEES, "predictions_nouvelles")
 RAPPORTS = os.path.join(DONNEES, "rapports")
 
 LOG_EXECUTION = os.path.join(DONNEES, "log_execution.json")
+JOURNAUX_DIRECTS = os.path.join(DONNEES, "journaux_direct")
+
+REFERENTIEL_LIAISONS = os.path.join(DONNEES, "reference", "LiaisonRef.parquet")
 
 LIEN_DOSSIER_DRIVE = "https://drive.google.com/drive/folders/1jhmXA-QxR1jVAacKfQWitnHuup6NFEFj?usp=sharing"
 

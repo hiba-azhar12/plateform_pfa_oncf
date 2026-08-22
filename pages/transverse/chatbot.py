@@ -14,6 +14,7 @@ from config.modeles import MODELES
 from utils.chargement import liste_liaisons
 from utils.chatbot import contexte as module_contexte
 from utils.chatbot import moteur, reponses
+from utils.liaisons import formateur_selectbox_liaison
 from utils.style import entete
 
 entete("Chatbot", "Posez vos questions sur toutes les données de la plateforme")
@@ -171,6 +172,7 @@ with st.container(border=True, key="parcours_guide"):
                             liaison = st.selectbox(
                                 "Liaison précise", liaisons_disponibles,
                                 key=f"liaison_precise_{cle_categorie}_{cle_modele}",
+                                format_func=formateur_selectbox_liaison(),
                             )
                         else:
                             st.info("Aucune liaison disponible pour ce modèle.")

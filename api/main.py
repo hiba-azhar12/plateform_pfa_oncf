@@ -13,6 +13,7 @@ from config.chemins import (
     DEPOT_QUOTIDIEN_CIRCULATION,
     DEPOT_QUOTIDIEN_CONTROLES,
     DEPOT_QUOTIDIEN_VENTES,
+    JOURNAUX_DIRECTS,
     LOG_EXECUTION,
 )
 from config.modeles import MODELES, chemin_fichier
@@ -27,6 +28,11 @@ DOSSIERS_DEPOT = {
 }
 
 import math
+
+
+def _chemin_journal_direct(nom):
+    os.makedirs(JOURNAUX_DIRECTS, exist_ok=True)
+    return os.path.join(JOURNAUX_DIRECTS, f"{nom}.log")
 
 
 def _nettoyer_nan(objet):
@@ -52,6 +58,15 @@ async def verifier_sante():
     return {"statut": "ok", "heure": horodatage_maroc()}
 
 
+@app.get("/journal-direct/{nom}")
+async def journal_direct(nom: str):
+    chemin = _chemin_journal_direct(nom)
+    if not os.path.isfile(chemin):
+        return {"contenu": ""}
+    with open(chemin, "r", errors="replace") as fichier:
+        return {"contenu": fichier.read()}
+
+
 @app.post("/deposer-donnees/{type_donnee}")
 async def deposer_donnees(type_donnee: str, fichier: UploadFile):
     if type_donnee not in DOSSIERS_DEPOT:
@@ -66,7 +81,13 @@ async def deposer_donnees(type_donnee: str, fichier: UploadFile):
 
 @app.post("/traiter-quotidien")
 async def traiter_quotidien():
-    subprocess.Popen([sys.executable, "scripts/traiter_depot_quotidien.py"], start_new_session=True)
+    chemin_log = _chemin_journal_direct("traitement")
+    with open(chemin_log, "w") as fichier_log:
+        subprocess.Popen(
+            [sys.executable, "scripts/traiter_depot_quotidien.py"],
+            stdout=fichier_log, stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
     return {"statut": "traitement_lance", "horodatage": horodatage_maroc()}
 
 
@@ -98,38 +119,11 @@ async def declencher_reentrainement(cle_modele: str):
     if cle_modele not in MODELES:
         raise HTTPException(status_code=404, detail="modele inconnu")
 
-    resultat = subprocess.run(
-        [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele],
-        capture_output=True, text=True, timeout=1800,
-    )
-
-    if resultat.returncode != 0:
-        raise HTTPException(
-            status_code=500,
-            detail=f"le processus de reentrainement a echoue (code {resultat.returncode}) : {resultat.stderr[-2000:]}",
+    chemin_log = _chemin_journal_direct(f"reentrainement_{cle_modele}")
+    with open(chemin_log, "w") as fichier_log:
+        subprocess.Popen(
+            [sys.executable, "scripts/reentrainer_modeles.py", "--modele", cle_modele],
+            stdout=fichier_log, stderr=subprocess.STDOUT,
+            start_new_session=True,
         )
-
-    lignes = resultat.stdout.splitlines()
-    indice_ouverture = None
-    for indice in range(len(lignes) - 1, -1, -1):
-        if lignes[indice].strip() == "{":
-            indice_ouverture = indice
-            break
-
-    if indice_ouverture is None:
-        raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
-
-    bloc_json = "\n".join(lignes[indice_ouverture:])
-
-    try:
-        return json.loads(bloc_json)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail=f"sortie inattendue : {resultat.stdout[-2000:]}")
-
-
-@app.get("/etat-pipeline")
-async def etat_pipeline():
-    if not os.path.isfile(LOG_EXECUTION):
-        return []
-    with open(LOG_EXECUTION, "r") as fichier:
-        return json.load(fichier)
+    return {"statut": "reentrainement_lance", "horodatage": horodatage_maroc()}

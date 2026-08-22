@@ -431,12 +431,26 @@ def reentrainer_tous():
 
 if __name__ == "__main__":
     import argparse
+    import traceback
 
     analyseur = argparse.ArgumentParser()
     analyseur.add_argument("--modele", default=None)
     arguments = analyseur.parse_args()
 
-    if arguments.modele:
-        print(json.dumps(reentrainer(arguments.modele), indent=2, default=str))
-    else:
-        print(json.dumps(reentrainer_tous(), indent=2, default=str))
+    try:
+        if arguments.modele:
+            print(json.dumps(reentrainer(arguments.modele), indent=2, default=str))
+        else:
+            print(json.dumps(reentrainer_tous(), indent=2, default=str))
+    except Exception as exception:
+        resultat_erreur = {
+            "horodatage": horodatage_maroc(),
+            "type": "reentrainement",
+            "cle_modele": arguments.modele,
+            "statut": "erreur",
+            "erreur": str(exception),
+            "trace": traceback.format_exc(),
+        }
+        _ecrire_log(resultat_erreur)
+        print(json.dumps(resultat_erreur, indent=2, default=str))
+        raise

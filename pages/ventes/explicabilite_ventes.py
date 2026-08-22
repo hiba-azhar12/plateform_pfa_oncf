@@ -6,7 +6,7 @@ from utils.style import entete
 entete("Explicabilité Ventes", "Importance des variables et analyse des erreurs par modèle")
 
 onglet_billets, onglet_taux, onglet_confort = st.tabs([
-    "Billets vendus", "Taux de ventes guichet", "Répartition par confort",
+    "Billets vendus", "Taux de ventes PDA", "Répartition par confort",
 ])
 
 with onglet_billets:

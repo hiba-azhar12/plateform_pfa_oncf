@@ -9,6 +9,56 @@ from utils.temps import horodatage_maroc
 
 URL_API = "http://localhost:8000"
 
+DELAI_MAXIMUM = 1500
+INTERVALLE = 3
+
+
+def _attendre_resultat(horodatage_avant, nom_journal_direct, reentrainement=False, cle_modele=None):
+    zone_log = st.empty()
+    resultat_final = None
+    temps_ecoule = 0
+
+    while temps_ecoule < DELAI_MAXIMUM:
+        time.sleep(INTERVALLE)
+        temps_ecoule += INTERVALLE
+
+        try:
+            reponse_log = requests.get(f"{URL_API}/journal-direct/{nom_journal_direct}", timeout=10)
+            contenu_log = reponse_log.json().get("contenu", "")
+        except requests.exceptions.RequestException:
+            contenu_log = ""
+        if contenu_log:
+            zone_log.code(contenu_log, language="text")
+
+        try:
+            reponse = requests.get(f"{URL_API}/etat-pipeline", timeout=10)
+            journal = reponse.json()
+        except requests.exceptions.RequestException:
+            continue
+
+        if reentrainement:
+            nouvelles_entrees = [
+                entree for entree in journal
+                if entree.get("horodatage", "") > horodatage_avant
+                and entree.get("statut") != "en_cours"
+                and entree.get("type") == "reentrainement"
+                and entree.get("cle_modele") == cle_modele
+            ]
+        else:
+            nouvelles_entrees = [
+                entree for entree in journal
+                if entree.get("horodatage", "") > horodatage_avant
+                and entree.get("statut") != "en_cours"
+                and entree.get("type") != "reentrainement"
+            ]
+
+        if nouvelles_entrees:
+            resultat_final = nouvelles_entrees[-1]
+            break
+
+    return resultat_final
+
+
 st.title("Administration")
 
 try:
@@ -27,10 +77,11 @@ dernier = dernier_log_execution()
 if dernier is None:
     st.info("Aucun dépôt enregistré")
 else:
-    colonne1, colonne2, colonne3 = st.columns(3)
-    colonne1.metric("Horodatage", dernier.get("horodatage", "—"))
-    colonne2.metric("Statut", dernier.get("statut", "—"))
-    colonne3.metric("Date traitée", dernier.get("date_traitee", "—"))
+    with st.container(key="carte_dernier_depot"):
+        colonne1, colonne2, colonne3 = st.columns(3)
+        colonne1.metric("Horodatage", dernier.get("horodatage", "—"))
+        colonne2.metric("Statut", dernier.get("statut", "—"))
+        colonne3.metric("Date traitée", dernier.get("date_traitee", "—"))
 
 if st.button("Forcer le traitement"):
     horodatage_avant = horodatage_maroc()
@@ -39,30 +90,8 @@ if st.button("Forcer le traitement"):
     except requests.exceptions.RequestException as exception:
         st.error(f"Impossible de declencher le traitement : {exception}")
     else:
-        resultat_final = None
         with st.spinner("Traitement en cours..."):
-            delai_maximum = 1500
-            intervalle = 3
-            temps_ecoule = 0
-
-            while temps_ecoule < delai_maximum:
-                time.sleep(intervalle)
-                temps_ecoule += intervalle
-
-                try:
-                    reponse = requests.get(f"{URL_API}/etat-pipeline", timeout=10)
-                    journal = reponse.json()
-                except requests.exceptions.RequestException:
-                    continue
-
-                nouvelles_entrees = [
-                    entree for entree in journal
-                    if entree.get("horodatage", "") > horodatage_avant and entree.get("statut") != "en_cours"
-                ]
-
-                if nouvelles_entrees:
-                    resultat_final = nouvelles_entrees[-1]
-                    break
+            resultat_final = _attendre_resultat(horodatage_avant, "traitement")
 
         if resultat_final is None:
             st.warning("Le traitement met plus de temps que prevu. Verifie l'onglet etat du pipeline plus tard.")
@@ -99,6 +128,26 @@ cle_choisie = colonne_selection.selectbox(
     format_func=lambda cle: MODELES[cle]["libelle_court"],
 )
 if colonne_bouton.button("Réentraîner maintenant", disabled=not api_active):
-    with st.spinner("Réentraînement en cours"):
-        resultat = requests.post(f"{URL_API}/reentrainer/{cle_choisie}", timeout=1800)
-    st.write(resultat.json())
+    horodatage_avant = horodatage_maroc()
+    try:
+        requests.post(f"{URL_API}/reentrainer/{cle_choisie}", timeout=10)
+    except requests.exceptions.RequestException as exception:
+        st.error(f"Impossible de declencher le reentrainement : {exception}")
+    else:
+        with st.spinner("Réentraînement en cours"):
+            resultat_final = _attendre_resultat(
+                horodatage_avant, f"reentrainement_{cle_choisie}",
+                reentrainement=True, cle_modele=cle_choisie,
+            )
+
+        if resultat_final is None:
+            st.warning("Le reentrainement met plus de temps que prevu. Verifie le tableau ci-dessus plus tard.")
+        elif resultat_final["statut"] in ("erreur", "echec"):
+            st.error(f"Le reentrainement a echoue : {resultat_final.get('erreur')}")
+        elif resultat_final["statut"] == "rejete":
+            st.warning("Nouveau modele rejete (regression de performance). L'ancien modele reste en service.")
+            st.json(resultat_final)
+        else:
+            st.cache_data.clear()
+            st.success("Reentrainement termine et nouveau modele deploye.")
+            st.json(resultat_final)

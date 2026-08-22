@@ -10,6 +10,7 @@ from utils.chargement import (
     liaisons_ordonnees_nouvelles_predictions,
 )
 from utils.composants import OPTION_TOUTES_HEURES, OPTION_TOUTES_LIAISONS, _fonction_agregation, _mise_en_forme
+from utils.liaisons import formateur_selectbox_liaison, libelle_liaison, nom_liaison
 from utils.style import PALETTE, bandeau_statut, entete
 from utils.tendances import CADENCES, serie_journaliere, serie_tendance, valeur_comparaison
 
@@ -124,7 +125,10 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
             with colonnes_filtre[indice]:
                 liaisons = liaisons_ordonnees_nouvelles_predictions(cle_modele)
                 options_liaison = [OPTION_TOUTES_LIAISONS] + liaisons
-                liaison_choisie = st.selectbox("Liaison", options_liaison, key=f"nouvelle_liaison_{cle_modele}")
+                liaison_choisie = st.selectbox(
+                    "Liaison", options_liaison, key=f"nouvelle_liaison_{cle_modele}",
+                    format_func=formateur_selectbox_liaison(OPTION_TOUTES_LIAISONS),
+                )
             indice += 1
 
             if colonne_categorie and colonne_categorie in sous_prediction.columns:
@@ -161,7 +165,7 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
         selection_prediction = _filtrer(sous_prediction).copy()
 
         titre_selection = info["libelle"]
-        titre_selection += " — Toutes les liaisons (agrégé)" if liaison_est_all else f" — Liaison {liaison_choisie}"
+        titre_selection += " — Toutes les liaisons (agrégé)" if liaison_est_all else f" — Liaison {libelle_liaison(liaison_choisie)}"
         if granularite_horaire:
             titre_selection += " — Toutes les heures" if heure_est_all else f" — {heure_choisie}h"
 
@@ -183,9 +187,10 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
                     st.metric(f"{libelle_agregat} prédiction", _formater_valeur(valeur_prediction_globale, info["famille"]))
 
                 nb_affichees = 25
-                top = agrege.head(nb_affichees)
+                top = agrege.head(nb_affichees).copy()
+                top["LiaisonAffichee"] = top["LiaisonId"].map(nom_liaison)
                 figure = go.Figure()
-                figure.add_trace(go.Bar(x=top["LiaisonId"], y=top["Prediction"], marker_color=PALETTE["orange"]))
+                figure.add_trace(go.Bar(x=top["LiaisonAffichee"], y=top["Prediction"], marker_color=PALETTE["orange"]))
                 _mise_en_forme(figure, titre=f"{titre_selection} — Top {nb_affichees} liaisons (triées par prédiction)", hauteur=420, afficher_legende=False)
                 figure.update_xaxes(title_text="Liaison", type="category")
                 figure.update_yaxes(title_text=info["libelle_court"])
@@ -307,10 +312,11 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
                 with colonne_trois:
                     st.metric(f"{libelle_agregat} prédiction", _formater_valeur(selection_reconciliee["Prediction"].agg(fonction_agg), info["famille"]))
 
-                top_r = agrege_r.head(25)
+                top_r = agrege_r.head(25).copy()
+                top_r["LiaisonAffichee"] = top_r["LiaisonId"].map(nom_liaison)
                 figure_r = go.Figure()
-                figure_r.add_trace(go.Bar(x=top_r["LiaisonId"], y=top_r["Reel"], name="Réel", marker_color=PALETTE["navy"]))
-                figure_r.add_trace(go.Bar(x=top_r["LiaisonId"], y=top_r["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
+                figure_r.add_trace(go.Bar(x=top_r["LiaisonAffichee"], y=top_r["Reel"], name="Réel", marker_color=PALETTE["navy"]))
+                figure_r.add_trace(go.Bar(x=top_r["LiaisonAffichee"], y=top_r["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
                 figure_r.update_layout(barmode="group")
                 _mise_en_forme(figure_r, titre=f"{titre_selection} — {date_reconciliee.strftime('%d/%m/%Y')}", hauteur=400)
                 figure_r.update_xaxes(title_text="Liaison", type="category")

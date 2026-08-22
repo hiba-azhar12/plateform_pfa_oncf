@@ -68,24 +68,20 @@ def appliquer_style():
         }}
 
         div[data-testid="stHeader"] {{
-            height: 0 !important;
-            min-height: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
             background: transparent !important;
-        }}
-
-        div[data-testid="stHeader"] > div {{
-            display: none !important;
+            box-shadow: none !important;
         }}
 
         div[data-testid="stSidebarCollapsedControl"] {{
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            z-index: 999999 !important;
-            position: fixed !important;
-            top: 0.5rem !important;
+            display: none !important;
+        }}
+
+        div[data-testid="stSidebarCollapseButton"] {{
+            display: none !important;
+        }}
+
+        [data-testid="stSidebarResizeHandle"] {{
+            display: none !important;
         }}
 
         div[data-testid="stElementContainer"]:has(style) {{
@@ -151,7 +147,13 @@ def appliquer_style():
             border-left: 3px solid transparent;
             border-radius: 0;
             padding-left: 12px;
+            padding-top: 9px;
+            padding-bottom: 9px;
             transition: border-color 0.15s ease, color 0.15s ease;
+        }}
+
+        section[data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(a[data-testid="stPageLink-NavLink"]) {{
+            margin-bottom: 2px;
         }}
 
         section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover,
@@ -169,9 +171,18 @@ def appliquer_style():
             color: {PALETTE["orange"]} !important;
         }}
 
-        section[data-testid="stSidebar"] a[href*="/accueil"],
-        section[data-testid="stSidebar"] a[href$="accueil"] {{
-            display: none !important;
+        section[data-testid="stSidebar"] .menu-section-titre {{
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9AA5B1 !important;
+            padding: 20px 12px 6px 12px;
+            margin: 0;
+        }}
+
+        section[data-testid="stSidebar"] .menu-section-titre-premiere {{
+            padding-top: 6px;
         }}
 
         div[data-testid="stSidebarHeader"] {{
@@ -290,10 +301,29 @@ def appliquer_style():
         div[data-testid="stMetricValue"] {{
             color: {PALETTE["navy"]};
             font-weight: 700;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-break: break-word;
+            line-height: 1.3;
+        }}
+
+        div[data-testid="stMetricValue"] > div {{
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
         }}
 
         .carte-fraude div[data-testid="stMetricValue"] {{
             color: {PALETTE["red"]};
+        }}
+
+        .st-key-carte_dernier_depot [data-testid="stMetric"],
+        div[class*="st-key-carte_dernier_depot"] [data-testid="stMetric"] {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 110px;
         }}
 
         .st-key-panneau_selection {{

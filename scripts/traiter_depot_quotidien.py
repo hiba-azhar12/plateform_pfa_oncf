@@ -61,16 +61,34 @@ def _prochaine_date_a_traiter():
     return sorted(dates_completes)[0]
 
 
+def _derniere_date_traitee():
+    dates_ventes = set(_dates_disponibles(DEPOT_TRAITE_VENTES, "ventes_"))
+    dates_controles = set(_dates_disponibles(DEPOT_TRAITE_CONTROLES, "controles_"))
+    dates_circulation = set(_dates_disponibles(DEPOT_TRAITE_CIRCULATION, "circulation_"))
+
+    dates_completes = dates_ventes & dates_controles & dates_circulation
+    if not dates_completes:
+        return None
+    return sorted(dates_completes)[-1]
+
+
 def _valider_colonnes(df, colonnes_attendues, nom_fichier):
     manquantes = [colonne for colonne in colonnes_attendues if colonne not in df.columns]
     if manquantes:
         raise ValueError(f"Colonnes manquantes dans {nom_fichier} : {manquantes}")
 
 
+def _chemin_source(dossier_quotidien, dossier_traite, nom_fichier):
+    chemin_quotidien = os.path.join(dossier_quotidien, nom_fichier)
+    if os.path.isfile(chemin_quotidien):
+        return chemin_quotidien
+    return os.path.join(dossier_traite, nom_fichier)
+
+
 def _charger_lot(date_texte):
-    chemin_ventes = os.path.join(DEPOT_QUOTIDIEN_VENTES, f"ventes_{date_texte}.csv")
-    chemin_controles = os.path.join(DEPOT_QUOTIDIEN_CONTROLES, f"controles_{date_texte}.csv")
-    chemin_circulation = os.path.join(DEPOT_QUOTIDIEN_CIRCULATION, f"circulation_{date_texte}.csv")
+    chemin_ventes = _chemin_source(DEPOT_QUOTIDIEN_VENTES, DEPOT_TRAITE_VENTES, f"ventes_{date_texte}.csv")
+    chemin_controles = _chemin_source(DEPOT_QUOTIDIEN_CONTROLES, DEPOT_TRAITE_CONTROLES, f"controles_{date_texte}.csv")
+    chemin_circulation = _chemin_source(DEPOT_QUOTIDIEN_CIRCULATION, DEPOT_TRAITE_CIRCULATION, f"circulation_{date_texte}.csv")
 
     ventepda = pd.read_csv(chemin_ventes)
     controlepda = pd.read_csv(chemin_controles)
@@ -291,9 +309,9 @@ def _ecrire_log(entree):
         json.dump(journal, fichier, indent=2, default=str)
 
 
-def traiter_date(date_texte):
+def traiter_date(date_texte, retraitement=False):
     _afficher_ram("debut traiter_date")
-    alerte_continuite = _verifier_continuite(date_texte)
+    alerte_continuite = None if retraitement else _verifier_continuite(date_texte)
     ventepda, controlepda, circulation, chemins = _charger_lot(date_texte)
     lots_agreges = agreger_lot_quotidien(ventepda, controlepda, circulation)
     del ventepda, controlepda, circulation
@@ -365,6 +383,11 @@ def executer():
             pass
 
         date_a_traiter = _prochaine_date_a_traiter()
+        retraitement = False
+
+        if date_a_traiter is None:
+            date_a_traiter = _derniere_date_traitee()
+            retraitement = True
 
         if date_a_traiter is None:
             _ecrire_log({
@@ -374,11 +397,12 @@ def executer():
             })
             return
 
-        resultat = traiter_date(date_a_traiter)
+        resultat = traiter_date(date_a_traiter, retraitement=retraitement)
         _ecrire_log({
             "horodatage": horodatage_maroc(),
             "statut": "succes" if not resultat["erreurs_modeles"] else "succes_partiel",
             "fichiers_traites": 3,
+            "retraitement": retraitement,
             "date_traitee": resultat["date_traitee"],
             "date_predite": resultat["date_predite"],
             "colonnes_manquantes": resultat["colonnes_manquantes"],

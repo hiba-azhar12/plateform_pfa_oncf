@@ -22,11 +22,11 @@ st.markdown(
         background-color: {PALETTE["navy"]} !important;
     }}
 
-    section[data-testid="stSidebar"] {{
+    div[data-testid="stAppViewContainer"]:has(.st-key-accueil_page) section[data-testid="stSidebar"] {{
         display: none !important;
     }}
 
-    div[data-testid="stSidebarCollapsedControl"] {{
+    div[data-testid="stAppViewContainer"]:has(.st-key-accueil_page) div[data-testid="stSidebarCollapsedControl"] {{
         display: none !important;
     }}
 

@@ -2828,5 +2828,123 @@
       "NbLignesEntrainement": 10470085
     },
     "rmse_ancien_meme_periode": 23.734623658433943
+  },
+  {
+    "horodatage": "2026-08-22 11:59:41",
+    "statut": "en_cours"
+  },
+  {
+    "horodatage": "2026-08-22 12:11:02",
+    "statut": "succes",
+    "fichiers_traites": 3,
+    "retraitement": true,
+    "date_traitee": "2025-11-05",
+    "date_predite": "2025-11-06",
+    "colonnes_manquantes": {},
+    "liaisons_inconnues": {
+      "modele4_part_confort": [
+        "nan"
+      ],
+      "modele3_controles": [
+        "nan"
+      ],
+      "modele6_taux_fraude": [
+        "nan"
+      ],
+      "modele7_part_type": [
+        "12403",
+        "13447",
+        "13580",
+        "13900",
+        "13901",
+        "14376",
+        "14719",
+        "14796",
+        "14827",
+        "15166",
+        "15386",
+        "15518",
+        "15521",
+        "15558",
+        "15597",
+        "15616",
+        "15707",
+        "15843",
+        "16955",
+        "16956",
+        "17021",
+        "17341",
+        "17968",
+        "18158",
+        "18247",
+        "18357",
+        "18480",
+        "18510",
+        "18648",
+        "18688",
+        "18798",
+        "18825",
+        "18838",
+        "18923",
+        "18994",
+        "19001",
+        "19243",
+        "19284",
+        "20410",
+        "20730",
+        "21211",
+        "21217",
+        "21229",
+        "21235",
+        "21254",
+        "21292",
+        "21296",
+        "21380",
+        "21391",
+        "21563",
+        "21571",
+        "21726",
+        "21729",
+        "22664",
+        "23174",
+        "25936",
+        "26182",
+        "26187",
+        "26404",
+        "26694",
+        "26872",
+        "26883",
+        "29585",
+        "29615",
+        "8229",
+        "nan"
+      ]
+    },
+    "erreurs_modeles": {},
+    "alerte_continuite": null
+  },
+  {
+    "horodatage": "2026-08-22 12:14:29",
+    "type": "reentrainement",
+    "cle_modele": "modele7_part_type",
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 0.17612164401471134,
+      "MAE": 0.09387345167888554,
+      "DateReentrainement": "2026-08-16 17:49:10",
+      "NbLignesEntrainement": 205665
+    },
+    "metriques_apres": {
+      "RMSE": 0.1597988915958753,
+      "MAE": 0.08572702191821252,
+      "MedAE": 0.05662714396006463,
+      "WMAPE": 0.16330839105789433,
+      "NbLignesValidation": 68097,
+      "Cible": "PartType",
+      "Modele": "PART TYPE DE TITRE - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-22 12:14:29",
+      "NbLignesEntrainement": 224622
+    },
+    "rmse_ancien_meme_periode": 0.1602301615901905
   }
 ]

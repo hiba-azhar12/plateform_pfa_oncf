@@ -8,8 +8,8 @@ from config.chemins import RAPPORTS
 from config.modeles import MODELES
 from utils.chargement import (
     charger_anomalies,
-    charger_calendrier_quotidien,
-    charger_comparaison_inter_annees,
+    charger_calendrier_quotidien_dynamique,
+    charger_comparaison_inter_annees_dynamique,
     charger_importance_features,
     charger_importance_shap,
     charger_metriques,
@@ -18,6 +18,7 @@ from utils.chargement import (
     charger_saisonnalite,
     dernier_log_execution,
 )
+from utils.liaisons import ajouter_colonne_nom_liaison, libelle_liaison
 from utils.rapport import generer_rapport_hebdomadaire
 from utils.style import PALETTE
 
@@ -81,7 +82,7 @@ def reponse_anomalies(cle_modele, liaison=None, borne_debut=None, borne_fin=None
     detectees = anomalies[anomalies["EstAnomalie"]] if "EstAnomalie" in anomalies.columns else anomalies.iloc[0:0]
     nombre = len(detectees)
 
-    suffixe_liaison = f" sur la liaison {liaison}" if liaison else ""
+    suffixe_liaison = f" sur la liaison {libelle_liaison(liaison)}" if liaison else ""
     suffixe_periode = f" entre le {borne_debut.strftime('%d/%m/%Y')} et le {borne_fin.strftime('%d/%m/%Y')}" if borne_debut else ""
     texte = f"**{nombre}** anomalie(s) détectée(s) pour {info['libelle']}{suffixe_liaison}{suffixe_periode}."
 
@@ -89,6 +90,7 @@ def reponse_anomalies(cle_modele, liaison=None, borne_debut=None, borne_fin=None
     if nombre:
         colonnes = [c for c in ["Date", "LiaisonId", info["cible"], "Prediction", "ErreurAbsolue"] if c in detectees.columns]
         tableau = detectees.sort_values("ErreurAbsolue", ascending=False)[colonnes].head(10)
+        tableau = ajouter_colonne_nom_liaison(tableau)
 
     return _reponse(texte, tableau=tableau)
 
@@ -111,11 +113,12 @@ def reponse_predictions(cle_modele, liaison=None, borne_debut=None, borne_fin=No
         return _reponse("Aucune prédiction disponible pour cette sélection.")
 
     derniere = source.sort_values("Date").iloc[-1]
-    suffixe = f" sur la liaison {liaison}" if liaison else ""
+    suffixe = f" sur la liaison {libelle_liaison(liaison)}" if liaison else ""
     texte = f"Dernière prédiction pour **{info['libelle']}**{suffixe} : **{derniere['Prediction']:.3f}** au {derniere['Date'].strftime('%d/%m/%Y')}."
 
     colonnes = [c for c in ["Date", "LiaisonId", "Prediction", "Reel"] if c in source.columns]
     tableau = source.sort_values("Date", ascending=False)[colonnes].head(10)
+    tableau = ajouter_colonne_nom_liaison(tableau)
     return _reponse(texte, tableau=tableau)
 
 
@@ -148,7 +151,7 @@ def reponse_explicabilite(cle_modele):
 
 def reponse_comparaison(cle_modele, liaison=None):
     info = MODELES[cle_modele]
-    comparaison = charger_comparaison_inter_annees(cle_modele)
+    comparaison = charger_comparaison_inter_annees_dynamique(cle_modele)
     if comparaison.empty:
         return _reponse(f"Aucune donnée de comparaison inter-années disponible pour {info['libelle']}.")
 
@@ -172,8 +175,8 @@ def reponse_comparaison(cle_modele, liaison=None):
             colonne_serie = saisonnalite[saisonnalite["LiaisonId"].astype(str) == str(liaison)] if "LiaisonId" in saisonnalite.columns else saisonnalite
             if not colonne_serie.empty and {"Date", "Tendance", "Saisonnalite"}.issubset(colonne_serie.columns):
                 figure_saison = px.line(colonne_serie, x="Date", y=["Tendance", "Saisonnalite"])
-                _mise_en_forme(figure_saison, titre=f"Tendance et saisonnalité — liaison {liaison}", hauteur=320)
-                texte += f" Décomposition saisonnière ajoutée pour la liaison {liaison}."
+                _mise_en_forme(figure_saison, titre=f"Tendance et saisonnalité — liaison {libelle_liaison(liaison)}", hauteur=320)
+                texte += f" Décomposition saisonnière ajoutée pour la liaison {libelle_liaison(liaison)}."
 
     return _reponse(texte, figure=figure, figure_secondaire=figure_saison)
 
@@ -192,13 +195,13 @@ def reponse_saisonnalite(cle_modele, liaison):
         return _reponse(f"Aucune décomposition saisonnière disponible pour la liaison {liaison}.")
 
     figure = px.line(colonne_serie, x="Date", y=["Tendance", "Saisonnalite"])
-    _mise_en_forme(figure, titre=f"Tendance et saisonnalité — {info['libelle']} — liaison {liaison}", hauteur=380)
-    return _reponse(f"Décomposition saisonnière pour **{info['libelle']}**, liaison {liaison}.", figure=figure)
+    _mise_en_forme(figure, titre=f"Tendance et saisonnalité — {info['libelle']} — liaison {libelle_liaison(liaison)}", hauteur=380)
+    return _reponse(f"Décomposition saisonnière pour **{info['libelle']}**, liaison {libelle_liaison(liaison)}.", figure=figure)
 
 
 def reponse_calendrier(cle_modele):
     info = MODELES[cle_modele]
-    calendrier = charger_calendrier_quotidien(cle_modele)
+    calendrier = charger_calendrier_quotidien_dynamique(cle_modele)
     if calendrier.empty:
         return _reponse(f"Aucun calendrier d'écarts disponible pour {info['libelle']}.")
 

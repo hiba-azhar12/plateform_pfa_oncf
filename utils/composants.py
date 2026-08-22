@@ -6,8 +6,8 @@ import streamlit as st
 from config.modeles import MODELES
 from utils.chargement import (
     charger_anomalies,
-    charger_calendrier_quotidien,
-    charger_comparaison_inter_annees,
+    charger_calendrier_quotidien_dynamique,
+    charger_comparaison_inter_annees_dynamique,
     charger_importance_features,
     charger_importance_shap,
     charger_metriques,
@@ -18,6 +18,7 @@ from utils.chargement import (
     liaisons_ordonnees_par_frequence,
     modele_dispose_de_donnees,
 )
+from utils.liaisons import ajouter_colonne_nom_liaison, formateur_selectbox_liaison, libelle_liaison, nom_liaison
 from utils.style import PALETTE
 from utils.texte import phrase_anomalie, severite_anomalie
 
@@ -90,7 +91,7 @@ def _fonction_agregation(famille):
 
 def _titre_selection(info, liaison_choisie, date_choisie, granularite_horaire, heure_choisie):
     titre = info["libelle"]
-    titre += " — Toutes les liaisons (agrégé)" if liaison_choisie == OPTION_TOUTES_LIAISONS else f" — Liaison {liaison_choisie}"
+    titre += " — Toutes les liaisons (agrégé)" if liaison_choisie == OPTION_TOUTES_LIAISONS else f" — Liaison {libelle_liaison(liaison_choisie)}"
     titre += f" — {date_choisie.strftime('%d/%m/%Y')}" if date_choisie is not None else " — Toutes les dates"
     if granularite_horaire:
         titre += " — Toutes les heures" if heure_choisie == OPTION_TOUTES_HEURES else f" — {heure_choisie}h"
@@ -134,7 +135,10 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
         with colonnes_filtre[indice]:
             liaisons = liaisons_ordonnees_par_frequence(cle_modele)
             options_liaison = [OPTION_TOUTES_LIAISONS] + liaisons
-            liaison_choisie = st.selectbox("Liaison", options_liaison, key=f"liaison_{cle_modele}")
+            liaison_choisie = st.selectbox(
+                "Liaison", options_liaison, key=f"liaison_{cle_modele}",
+                format_func=formateur_selectbox_liaison(OPTION_TOUTES_LIAISONS),
+            )
         indice += 1
 
         if colonne_categorie:
@@ -276,10 +280,11 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
             st.metric("Écart total", f"{(agrege['Prediction'].sum() - agrege[cible].sum()):+.1f}")
 
         nb_affichees = 25
-        top = agrege.head(nb_affichees)
+        top = agrege.head(nb_affichees).copy()
+        top["LiaisonAffichee"] = top["LiaisonId"].map(nom_liaison)
         figure = go.Figure()
-        figure.add_trace(go.Bar(x=top["LiaisonId"], y=top[cible], name="Réel", marker_color=PALETTE["navy"]))
-        figure.add_trace(go.Bar(x=top["LiaisonId"], y=top["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
+        figure.add_trace(go.Bar(x=top["LiaisonAffichee"], y=top[cible], name="Réel", marker_color=PALETTE["navy"]))
+        figure.add_trace(go.Bar(x=top["LiaisonAffichee"], y=top["Prediction"], name="Prédiction", marker_color=PALETTE["orange"]))
         figure.update_layout(barmode="group")
         _mise_en_forme(figure, titre=f"{titre_graphe} — Top {nb_affichees} liaisons", hauteur=440)
         figure.update_xaxes(title_text="Liaison", type="category")
@@ -288,6 +293,7 @@ def afficher_dashboard_modele(cle_modele, mettre_en_avant_fraude=False):
 
         with st.expander(f"Table complète des liaisons ({len(agrege)})", expanded=True):
             table = agrege.rename(columns={cible: "Réel"})[["LiaisonId", "Réel", "Prediction", "Ecart"]]
+            table = ajouter_colonne_nom_liaison(table)
             st.dataframe(table, use_container_width=True, hide_index=True)
 
     else:
@@ -369,8 +375,9 @@ def afficher_anomalies_modele(cle_modele):
 
     colonnes_affichees = [c for c in ["Date", "LiaisonId", info["colonne_categorie"], info["cible"], "Prediction", "ErreurAbsolue", "Severite"] if c and c in anomalies_detectees.columns]
 
+    table_anomalies = ajouter_colonne_nom_liaison(anomalies_detectees[colonnes_affichees].head(200))
     st.dataframe(
-        anomalies_detectees[colonnes_affichees].head(200),
+        table_anomalies,
         use_container_width=True,
         hide_index=True,
     )
@@ -379,7 +386,7 @@ def afficher_anomalies_modele(cle_modele):
         critiques = anomalies_detectees[anomalies_detectees["Severite"] == "critique"].head(10)
         for _, ligne in critiques.iterrows():
             texte = phrase_anomalie(
-                ligne["Date"], ligne["LiaisonId"], ligne[info["cible"]], ligne["Prediction"], info["cible"]
+                ligne["Date"], libelle_liaison(ligne["LiaisonId"]), ligne[info["cible"]], ligne["Prediction"], info["cible"]
             )
             st.write(texte)
 
@@ -452,8 +459,9 @@ def afficher_explicabilite_modele(cle_modele):
                 .sort_values(ascending=False).head(15).reset_index()
             )
             erreur_liaison["LiaisonId"] = erreur_liaison["LiaisonId"].astype(str)
+            erreur_liaison["LiaisonAffichee"] = erreur_liaison["LiaisonId"].map(nom_liaison)
             figure = px.bar(
-                erreur_liaison, x="ErreurAbsolue", y="LiaisonId", orientation="h",
+                erreur_liaison, x="ErreurAbsolue", y="LiaisonAffichee", orientation="h",
                 color="ErreurAbsolue", color_continuous_scale=[PALETTE["amber"], PALETTE["red"]],
                 text="ErreurAbsolue",
             )
@@ -467,7 +475,7 @@ def afficher_explicabilite_modele(cle_modele):
 
 def afficher_comparaison_inter_annees(cle_modele):
     info = MODELES[cle_modele]
-    comparaison = charger_comparaison_inter_annees(cle_modele)
+    comparaison = charger_comparaison_inter_annees_dynamique(cle_modele)
     if comparaison.empty:
         _message_donnees_absentes(cle_modele)
         return
@@ -497,7 +505,7 @@ def afficher_comparaison_inter_annees(cle_modele):
 
 
 def afficher_calendrier_quotidien(cle_modele):
-    calendrier = charger_calendrier_quotidien(cle_modele)
+    calendrier = charger_calendrier_quotidien_dynamique(cle_modele)
     if calendrier.empty:
         _message_donnees_absentes(cle_modele)
         return

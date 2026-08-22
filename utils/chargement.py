@@ -122,8 +122,70 @@ def charger_calendrier_quotidien(cle_modele):
     return charger_csv(cle_modele, "calendrier_quotidien")
 
 
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_calendrier_quotidien_dynamique(cle_modele):
+    """Reconstruit le calendrier quotidien des ecarts (Prediction - Reel) a partir
+    des predictions completes (jeu de test + predictions nouvelles reconciliees),
+    au lieu du CSV fige genere une seule fois pendant la modelisation."""
+    info = MODELES[cle_modele]
+    cible = info["cible"]
+    predictions = charger_predictions_completes(cle_modele)
+    if predictions.empty or cible not in predictions.columns or "Prediction" not in predictions.columns:
+        return pd.DataFrame()
+
+    predictions = predictions.copy()
+    predictions["Date"] = pd.to_datetime(predictions["Date"])
+    fonction_agg = "sum" if info["famille"] == "comptages" else "mean"
+
+    agrege = (
+        predictions.dropna(subset=[cible])
+        .groupby("Date", as_index=False)
+        .agg({cible: fonction_agg, "Prediction": fonction_agg})
+    )
+    agrege["Ecart"] = agrege["Prediction"] - agrege[cible]
+    return agrege[["Date", "Ecart"]].sort_values("Date").reset_index(drop=True)
+
+
 def charger_comparaison_inter_annees(cle_modele):
     return charger_csv(cle_modele, "comparaison_inter_annees")
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_comparaison_inter_annees_dynamique(cle_modele):
+    """Reconstruit la comparaison inter-annees a partir de l'historique complet
+    (donnees de modelisation + depots quotidiens traites), au lieu du CSV fige
+    genere une seule fois pendant la modelisation. Cache 60s : reflete les
+    nouveaux depots automatiquement, sans redemarrage de l'application.
+
+    Ne lit que les colonnes Date + cible directement depuis le parquet (et non
+    charger_historique_complet, qui charge toutes les colonnes) : certains
+    historiques dépassent 20 millions de lignes, et charger toutes les
+    colonnes pour plusieurs modèles à la fois épuise la RAM disponible."""
+    from config.chemins import HISTORIQUE
+
+    cible = MODELES[cle_modele]["cible"]
+    chemin = os.path.join(HISTORIQUE, f"{cle_modele}.parquet")
+    if not _existe(chemin):
+        return pd.DataFrame()
+
+    try:
+        historique = pd.read_parquet(chemin, columns=["Date", cible])
+    except (ValueError, KeyError):
+        historique = charger_historique_complet(cle_modele)
+        if not historique.empty:
+            historique = historique[["Date", cible]] if cible in historique.columns else pd.DataFrame()
+
+    if historique.empty or cible not in historique.columns:
+        return pd.DataFrame()
+
+    historique["Date"] = pd.to_datetime(historique["Date"])
+    historique["Annee"] = historique["Date"].dt.year
+    historique["Mois"] = historique["Date"].dt.month
+
+    fonction_agg = "sum" if MODELES[cle_modele]["famille"] == "comptages" else "mean"
+    resultat = historique.groupby(["Annee", "Mois"], as_index=False)[cible].agg(fonction_agg)
+    del historique
+    return resultat.sort_values(["Annee", "Mois"]).reset_index(drop=True)
 
 
 def charger_encodage_liaison(cle_modele):
