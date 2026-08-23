@@ -392,6 +392,28 @@ def appliquer_style():
             background-color: #FFFFFF !important;
         }}
 
+        .st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection div[data-testid="stDateInput"] *:not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]),
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] *:not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]) {{
+            color: {PALETTE["text"]} !important;
+            -webkit-text-fill-color: {PALETTE["text"]} !important;
+        }}
+
+        .st-key-panneau_selection div[data-testid="stDateInput"] [data-focused="true"],
+        .st-key-panneau_selection div[data-testid="stDateInput"] [aria-selected="true"],
+        div[class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [data-focused="true"],
+        div[class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [aria-selected="true"] {{
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+        }}
+
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [data-focused="true"],
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [aria-selected="true"],
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [data-selected="true"],
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] [data-state="focused"] {{
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+        }}
+
         div[data-baseweb="select"] > div,
         div[data-testid="stDateInput"] div[data-baseweb="input"] {{
             min-height: 42px !important;

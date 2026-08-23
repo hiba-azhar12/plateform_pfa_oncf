@@ -10,6 +10,7 @@ QUESTIONS_REFERENCE = [
     "performance du modele billets vendus",
     "anomalies sur le taux de fraude",
     "derniere prediction du taux de controle",
+    "historique du taux de fraude",
     "variables importantes du modele fraude",
     "comparaison inter annees du taux de fraude",
     "saisonnalite sur la liaison",
@@ -18,7 +19,6 @@ QUESTIONS_REFERENCE = [
     "liste des rapports generes",
     "generer un rapport",
     "prediction des billets vendus a horizon j+7",
-    "performance du modele billets controles a j+15",
     "prediction du taux de fraude dans 4 jours",
 ]
 
@@ -63,34 +63,38 @@ def repondre_texte_libre(message, session_state, liaisons_connues):
 
     module_contexte.mettre_a_jour_contexte(session_state, cle_modele=cle_modele, liaison=liaison, horizon=horizon)
 
+    heure = extraction.detecter_heure(texte_corrige)
+
     if intention == "performance":
-        return _taguer(reponses.reponse_performance(cle_modele, horizon=horizon), "performance")
+        return _taguer(reponses.reponse_performance(cle_modele), "performance")
 
     if intention == "anomalies":
         return _taguer(
-            reponses.reponse_anomalies(
-                cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon,
-            ),
+            reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin),
             "anomalies",
         )
 
     if intention == "predictions":
         return _taguer(
-            reponses.reponse_predictions(
-                cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon,
-            ),
+            reponses.reponse_predictions(cle_modele, liaison=liaison, horizon=horizon, heure=heure),
             "predictions",
         )
 
+    if intention == "historique":
+        return _taguer(
+            reponses.reponse_historique(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, heure=heure),
+            "historique",
+        )
+
     if intention == "explicabilite":
-        return _taguer(reponses.reponse_explicabilite(cle_modele, horizon=horizon), "explicabilite")
+        return _taguer(reponses.reponse_explicabilite(cle_modele), "explicabilite")
 
     if intention == "comparaison":
         if "calendrier" in texte_corrige:
-            return _taguer(reponses.reponse_calendrier(cle_modele, horizon=horizon), "comparaison")
+            return _taguer(reponses.reponse_calendrier(cle_modele), "comparaison")
         if "saisonnalite" in texte_corrige or "saisonnier" in texte_corrige:
-            return _taguer(reponses.reponse_saisonnalite(cle_modele, liaison, horizon=horizon), "comparaison")
-        return _taguer(reponses.reponse_comparaison(cle_modele, liaison=liaison, horizon=horizon), "comparaison")
+            return _taguer(reponses.reponse_saisonnalite(cle_modele, liaison), "comparaison")
+        return _taguer(reponses.reponse_comparaison(cle_modele, liaison=liaison), "comparaison")
 
     suggestion = _suggestion_proche(texte_corrige)
     return reponses.reponse_repli(suggestion)

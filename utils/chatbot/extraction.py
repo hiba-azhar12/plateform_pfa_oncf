@@ -14,6 +14,12 @@ MOTIFS_HORIZON_NUMERIQUE = [
     re.compile(r"(?:dans|sur|a)\s+(\d{1,2})\s+jours?\b"),
 ]
 
+MOTIFS_HEURE = [
+    re.compile(r"\b(?:a|vers)\s+(\d{1,2})\s*h(?:eure)?s?\b"),
+    re.compile(r"\bheure\s+(\d{1,2})\b"),
+    re.compile(r"\b(\d{1,2})\s*h\b"),
+]
+
 MOTS_CLES_PERIODE = {
     "aujourd_hui": ["aujourd'hui", "aujourdhui", "ce jour"],
     "hier": ["hier"],
@@ -82,6 +88,16 @@ def detecter_horizon(texte_normalise):
         for mot in mots:
             if mot in texte_normalise:
                 return horizon
+    return None
+
+
+def detecter_heure(texte_normalise):
+    for motif in MOTIFS_HEURE:
+        correspondance = motif.search(texte_normalise)
+        if correspondance:
+            valeur = int(correspondance.group(1))
+            if 0 <= valeur <= 23:
+                return valeur
     return None
 
 

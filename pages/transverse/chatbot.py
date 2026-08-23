@@ -1,18 +1,20 @@
 from datetime import datetime, timedelta
 
+import pandas as pd
 import streamlit as st
 
 from config.chatbot import (
     CATEGORIES,
     LIBELLES_HORIZON,
     OPTION_LIAISON_PRECISE,
+    OPTION_TOUTES_HEURES_CHATBOT,
     OPTION_TOUTES_LIAISONS_CHATBOT,
     OPTIONS_PERIODE,
     ORDRE_CATEGORIES,
     SUGGESTIONS_CONTEXTUELLES,
 )
 from config.modeles import MODELES, horizons_disponibles
-from utils.chargement import liste_liaisons
+from utils.chargement import bornes_dates_disponibles, charger_predictions_completes, liste_liaisons
 from utils.chatbot import contexte as module_contexte
 from utils.chatbot import moteur, reponses
 from utils.liaisons import formateur_selectbox_liaison
@@ -72,7 +74,7 @@ def _ajouter_message(role, contenu):
     st.session_state["chat_historique"].append((role, contenu))
 
 
-def _poser_question_guidee(libelle_question, message_attente, fonction_reponse, cle_categorie, cle_modele=None, liaison=None, horizon=None):
+def _poser_question_guidee(libelle_question, message_attente, fonction_reponse, cle_categorie, cle_modele=None, liaison=None, horizon=None, heure=None):
     """Affiche immediatement la question et une bulle assistant avec un
     indicateur de chargement, calcule la reponse pendant que le spinner
     tourne, puis l'affiche des qu'elle est prete."""
@@ -91,25 +93,27 @@ def _poser_question_guidee(libelle_question, message_attente, fonction_reponse, 
     st.rerun()
 
 
-def _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon):
+def _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon, heure):
     if cle_categorie == "performance":
-        return reponses.reponse_performance(cle_modele, horizon=horizon)
+        return reponses.reponse_performance(cle_modele)
     if cle_categorie == "anomalies":
-        return reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon)
+        return reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin)
     if cle_categorie == "predictions":
-        return reponses.reponse_predictions(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon)
+        return reponses.reponse_predictions(cle_modele, liaison=liaison, horizon=horizon, heure=heure)
+    if cle_categorie == "historique":
+        return reponses.reponse_historique(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, heure=heure)
     if cle_categorie == "explicabilite":
-        return reponses.reponse_explicabilite(cle_modele, horizon=horizon)
+        return reponses.reponse_explicabilite(cle_modele)
     if cle_categorie == "comparaison":
         if sous_type == "saisonnalite":
-            return reponses.reponse_saisonnalite(cle_modele, liaison, horizon=horizon)
+            return reponses.reponse_saisonnalite(cle_modele, liaison)
         if sous_type == "calendrier":
-            return reponses.reponse_calendrier(cle_modele, horizon=horizon)
-        return reponses.reponse_comparaison(cle_modele, liaison=liaison, horizon=horizon)
+            return reponses.reponse_calendrier(cle_modele)
+        return reponses.reponse_comparaison(cle_modele, liaison=liaison)
     return reponses.reponse_repli()
 
 
-def _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon=None):
+def _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon=None, heure=None):
     libelle_modele = MODELES[cle_modele]["libelle"] if cle_modele else ""
     question = f"{CATEGORIES[cle_categorie]['libelle']} — {libelle_modele}" if libelle_modele else CATEGORIES[cle_categorie]["libelle"]
     if liaison:
@@ -118,6 +122,8 @@ def _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horiz
         question += f" — {periode_libelle}"
     if horizon and horizon != 1:
         question += f" — J+{horizon}"
+    if heure is not None:
+        question += f" — {heure}h"
     return question
 
 
@@ -194,6 +200,7 @@ with st.container(border=True, key="parcours_guide"):
                 periode_libelle = None
                 sous_type = "comparaison"
                 horizon = 1
+                heure = None
 
                 if info_categorie["necessite_liaison"]:
                     choix_liaison = st.radio(
@@ -211,6 +218,17 @@ with st.container(border=True, key="parcours_guide"):
                         else:
                             st.info("Aucune liaison disponible pour ce modèle.")
 
+                if cle_categorie in ("predictions", "historique") and MODELES[cle_modele]["granularite"] == "horaire":
+                    choix_heure = st.radio(
+                        "Heure", [OPTION_TOUTES_HEURES_CHATBOT, "Une heure précise"],
+                        key=f"choix_heure_{cle_categorie}_{cle_modele}", horizontal=True,
+                    )
+                    if choix_heure == "Une heure précise":
+                        heure = st.selectbox(
+                            "Heure précise", list(range(24)),
+                            key=f"heure_precise_{cle_categorie}_{cle_modele}",
+                        )
+
                 if cle_categorie == "comparaison":
                     sous_type = st.radio(
                         "Type d'analyse", ["comparaison", "saisonnalite", "calendrier"],
@@ -223,19 +241,29 @@ with st.container(border=True, key="parcours_guide"):
                     )
 
                 if info_categorie["necessite_periode"]:
+                    date_min_modele, date_max_modele = bornes_dates_disponibles(cle_modele)
                     choix_periode = st.radio(
                         "Période", OPTIONS_PERIODE,
                         key=f"choix_periode_{cle_categorie}_{cle_modele}", horizontal=True,
                     )
                     if choix_periode == "Date précise":
-                        date_choisie = st.date_input("Date", key=f"date_precise_{cle_categorie}_{cle_modele}")
+                        if date_max_modele is not None:
+                            date_choisie = st.date_input(
+                                "Date", value=date_max_modele, min_value=date_min_modele, max_value=date_max_modele,
+                                key=f"date_precise_{cle_categorie}_{cle_modele}",
+                            )
+                        else:
+                            date_choisie = st.date_input("Date", key=f"date_precise_{cle_categorie}_{cle_modele}")
                         borne_debut = borne_fin = date_choisie
                         periode_libelle = date_choisie.strftime("%d/%m/%Y")
+                    elif choix_periode == "Toutes les dates":
+                        borne_debut = borne_fin = None
+                        periode_libelle = None
                     else:
-                        aujourd_hui = datetime.now().date()
+                        derniere_date_disponible = date_max_modele or datetime.now().date()
                         jours = {"Cette semaine": 7, "2 dernières semaines": 14, "Ce mois": 30}[choix_periode]
-                        borne_debut = aujourd_hui - timedelta(days=jours)
-                        borne_fin = aujourd_hui
+                        borne_debut = derniere_date_disponible - timedelta(days=jours)
+                        borne_fin = derniere_date_disponible
                         periode_libelle = choix_periode
 
                 if info_categorie.get("necessite_horizon"):
@@ -252,11 +280,11 @@ with st.container(border=True, key="parcours_guide"):
                         )
 
                 if st.button("Poser cette question", key=f"poser_{cle_categorie}_{cle_modele}"):
-                    libelle_question = _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon)
+                    libelle_question = _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon, heure)
                     _poser_question_guidee(
                         libelle_question, "Analyse des données en cours…",
-                        lambda: _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon),
-                        cle_categorie, cle_modele=cle_modele, liaison=liaison, horizon=horizon,
+                        lambda: _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon, heure),
+                        cle_categorie, cle_modele=cle_modele, liaison=liaison, horizon=horizon, heure=heure,
                     )
 
 if st.session_state["chat_historique"] and st.session_state["chat_navigation"]["categorie"] is None:

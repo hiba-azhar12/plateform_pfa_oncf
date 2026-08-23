@@ -3608,5 +3608,153 @@
     },
     "rmse_ancien_meme_periode": 0.15867017427926045,
     "id_declenchement": "367c67ed-d9e8-4cfa-b898-13ad9bea17c2"
+  },
+  {
+    "horodatage": "2026-08-23 15:14:31",
+    "statut": "en_cours",
+    "id_declenchement": "37f3165e-3fa5-4b12-a29d-31743480253e"
+  },
+  {
+    "horodatage": "2026-08-23 16:09:41",
+    "statut": "succes",
+    "fichiers_traites": 3,
+    "retraitement": false,
+    "date_traitee": "2025-11-06",
+    "date_predite": "2025-11-07",
+    "colonnes_manquantes": {},
+    "liaisons_inconnues": {
+      "modele4_part_confort": {
+        "1": [
+          "nan"
+        ],
+        "2": [
+          "nan"
+        ],
+        "3": [
+          "nan"
+        ],
+        "4": [
+          "nan"
+        ],
+        "5": [
+          "nan"
+        ],
+        "6": [
+          "nan"
+        ]
+      },
+      "modele3_controles": {
+        "1": [
+          "nan"
+        ],
+        "2": [
+          "nan"
+        ],
+        "3": [
+          "nan"
+        ],
+        "4": [
+          "nan"
+        ],
+        "5": [
+          "nan"
+        ],
+        "6": [
+          "nan"
+        ]
+      },
+      "modele6_taux_fraude": {
+        "1": [
+          "nan"
+        ],
+        "2": [
+          "nan"
+        ],
+        "3": [
+          "nan"
+        ],
+        "4": [
+          "nan"
+        ],
+        "5": [
+          "nan"
+        ],
+        "6": [
+          "nan"
+        ]
+      },
+      "modele7_part_type": {
+        "1": [
+          "nan"
+        ],
+        "2": [
+          "nan"
+        ],
+        "3": [
+          "nan"
+        ],
+        "4": [
+          "nan"
+        ],
+        "5": [
+          "nan"
+        ],
+        "6": [
+          "nan"
+        ]
+      }
+    },
+    "erreurs_modeles": {},
+    "alerte_continuite": "Date traitee (2025-11-06) differente de la date attendue (2025-11-07) d'apres l'historique existant (dernier jour connu : 2025-11-06). Verifiez les fichiers deposes avant de continuer.",
+    "id_declenchement": "37f3165e-3fa5-4b12-a29d-31743480253e"
+  },
+  {
+    "horodatage": "2026-08-23 16:12:30",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "horizon": 30,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbBillets",
+      "Horizon": 30,
+      "Modele": "MODELE 1 VENTES BILLETS - CATBOOST RMSE - J+30",
+      "RMSE": 6.520037174162182,
+      "MAE": 1.0224474134238382,
+      "MAPE": 75.75528152351045,
+      "WMAPE": 65.65082270650105,
+      "NbLignesTest": 2053359
+    },
+    "metriques_apres": {
+      "RMSE": 6.51424765494538,
+      "MAE": 1.1446789499715397,
+      "MedAE": 0.19385437319591592,
+      "WMAPE": 0.666488275233534,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbBillets",
+      "Horizon": 30,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+30",
+      "DateReentrainement": "2026-08-23 16:12:30",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 10.686190047344029,
+    "id_declenchement": "099433c3-3907-4b6f-9527-e6dd19ed8722"
+  },
+  {
+    "horodatage": "2026-08-23 16:20:04",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": 7,
+    "statut": "echec",
+    "erreur": "historique_insuffisant",
+    "id_declenchement": "c9da0efc-00d7-41ed-b4b4-6521473119af"
+  },
+  {
+    "horodatage": "2026-08-23 16:24:52",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": 15,
+    "statut": "echec",
+    "erreur": "historique_insuffisant",
+    "id_declenchement": "00cdbe2a-3636-4d41-bda7-9449e4315736"
   }
 ]

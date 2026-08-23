@@ -155,6 +155,19 @@ def charger_predictions_completes(cle_modele):
     return combine
 
 
+@st.cache_data(show_spinner=False, ttl=60)
+def bornes_dates_disponibles(cle_modele):
+    """Renvoie (date_min, date_max) parmi les donnees reellement disponibles
+    (jeu de test + predictions nouvelles reconciliees) pour ce modele, pour
+    borner les selecteurs de date sur l'historique plutot que sur la date du
+    jour reelle. Renvoie (None, None) si aucune donnee n'est disponible."""
+    predictions = charger_predictions_completes(cle_modele)
+    if predictions.empty or "Date" not in predictions.columns:
+        return None, None
+    dates = pd.to_datetime(predictions["Date"])
+    return dates.min().date(), dates.max().date()
+
+
 def charger_anomalies(cle_modele):
     return charger_csv(cle_modele, "anomalies")
 

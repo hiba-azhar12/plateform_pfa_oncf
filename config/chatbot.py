@@ -4,35 +4,42 @@ CATEGORIES = {
         "necessite_modele": True,
         "necessite_liaison": False,
         "necessite_periode": False,
-        "necessite_horizon": True,
+        "necessite_horizon": False,
     },
     "anomalies": {
         "libelle": "Anomalies",
         "necessite_modele": True,
         "necessite_liaison": True,
         "necessite_periode": True,
-        "necessite_horizon": True,
+        "necessite_horizon": False,
     },
     "predictions": {
         "libelle": "Prédictions",
         "necessite_modele": True,
         "necessite_liaison": True,
-        "necessite_periode": True,
+        "necessite_periode": False,
         "necessite_horizon": True,
+    },
+    "historique": {
+        "libelle": "Historique",
+        "necessite_modele": True,
+        "necessite_liaison": True,
+        "necessite_periode": True,
+        "necessite_horizon": False,
     },
     "explicabilite": {
         "libelle": "Explicabilité",
         "necessite_modele": True,
         "necessite_liaison": False,
         "necessite_periode": False,
-        "necessite_horizon": True,
+        "necessite_horizon": False,
     },
     "comparaison": {
         "libelle": "Comparaison / Tendances",
         "necessite_modele": True,
         "necessite_liaison": True,
         "necessite_periode": False,
-        "necessite_horizon": True,
+        "necessite_horizon": False,
     },
     "pipeline": {
         "libelle": "État du pipeline",
@@ -51,7 +58,7 @@ CATEGORIES = {
 }
 
 ORDRE_CATEGORIES = [
-    "performance", "anomalies", "predictions", "explicabilite",
+    "performance", "anomalies", "predictions", "historique", "explicabilite",
     "comparaison", "pipeline", "rapports",
 ]
 
@@ -83,6 +90,7 @@ MOTS_CLES_INTENTION = {
     "performance": ["performance", "precision", "rmse", "mae", "wmape", "fiabilite", "qualite du modele", "score"],
     "anomalies": ["anomalie", "anomalies", "ecart", "ecarts", "probleme", "incident"],
     "predictions": ["prediction", "predictions", "prevision", "previsions", "demain", "prochain", "prochaine"],
+    "historique": ["historique", "evolution reelle", "suivi reel", "reel contre prediction", "courbe reelle", "valeurs passees"],
     "explicabilite": ["explicabilite", "shap", "importance", "variable importante", "feature", "pourquoi"],
     "comparaison": [
         "comparaison", "compare", "comparer", "evolution", "tendance", "annee derniere",
@@ -122,25 +130,20 @@ GLOSSAIRE = {
     "WMAPE": "Weighted Mean Absolute Percentage Error, erreur moyenne pondérée en pourcentage.",
     "RMSE": "Root Mean Squared Error, racine de l'erreur quadratique moyenne.",
     "MAE": "Mean Absolute Error, erreur absolue moyenne.",
-    "TauxFraude": "Part des contrôles ayant révélé une fraude, sur l'ensemble des contrôles.",
     "PDA": "Terminal portable (Portable Data Acquisition) utilisé pour la vente et le contrôle des billets.",
     "SHAP": "Méthode d'explicabilité qui mesure la contribution de chaque variable à une prédiction donnée.",
-    "Horizon (J+N)": (
-        "Nombre de jours entre la date du dernier dépôt de données et la date prédite. "
-        "J+1 à J+6 sont calculés de façon récursive à partir du modèle standard, pour les 7 modèles de la plateforme. "
-        "J+7, J+15 et J+30 s'appuient sur des modèles dédiés, entraînés spécifiquement pour cet horizon, "
-        "disponibles uniquement pour les modèles Billets vendus et Billets contrôlés."
-    ),
 }
 
 OPTION_TOUTES_LIAISONS_CHATBOT = "Toutes les liaisons"
 OPTION_LIAISON_PRECISE = "Une liaison précise"
-OPTIONS_PERIODE = ["Cette semaine", "2 dernières semaines", "Ce mois", "Date précise"]
+OPTION_TOUTES_HEURES_CHATBOT = "Toutes les heures"
+OPTIONS_PERIODE = ["Toutes les dates", "Cette semaine", "2 dernières semaines", "Ce mois", "Date précise"]
 
 SUGGESTIONS_CONTEXTUELLES = {
     "performance": ["anomalies", "explicabilite", "predictions"],
     "anomalies": ["comparaison", "predictions", "explicabilite"],
-    "predictions": ["anomalies", "comparaison"],
+    "predictions": ["historique", "anomalies", "comparaison"],
+    "historique": ["predictions", "anomalies"],
     "explicabilite": ["performance", "anomalies"],
     "comparaison": ["anomalies", "predictions"],
     "pipeline": ["rapports", "anomalies"],
@@ -149,30 +152,31 @@ SUGGESTIONS_CONTEXTUELLES = {
 
 EXEMPLES_QUESTIONS = {
     "performance": [
-        ("Quelle est la performance du modèle billets vendus ?", "RMSE, MAE et WMAPE du modèle sur le jeu de test (horizon J+1 par défaut)."),
+        ("Quelle est la performance du modèle billets vendus ?", "RMSE, MAE et WMAPE du modèle sur le jeu de test (horizon J+1)."),
         ("Quelle est la précision du modèle de taux de fraude ?", "Les métriques de qualité du modèle taux de fraude."),
-        ("Performance du modèle billets vendus à horizon J+15", "Métriques du modèle dédié entraîné spécifiquement pour l'horizon J+15."),
     ],
     "anomalies": [
         ("Y a-t-il des anomalies sur le taux de fraude cette semaine ?", "Nombre d'anomalies détectées sur la période, avec le détail des 10 écarts les plus importants."),
-        ("Anomalies sur la liaison 100 pour les contrôles", "Anomalies filtrées sur cette liaison et ce modèle."),
-        ("Anomalies des billets contrôlés à J+30", "Anomalies détectées par le modèle dédié à l'horizon J+30."),
+        ("Anomalies sur la liaison 100 pour les contrôles", "Anomalies filtrées sur cette liaison et ce modèle, toutes dates."),
     ],
     "predictions": [
-        ("Quelle est la prochaine prédiction de billets vendus sur la liaison 100 ?", "Dernière prédiction disponible pour ce modèle et cette liaison, avec l'historique récent."),
-        ("Prédiction du taux de contrôle cette semaine", "Dernière valeur prédite sur la période demandée."),
-        ("Prédiction des billets vendus dans 7 jours", "Prédiction à l'horizon J+7 (modèle dédié)."),
+        ("Quelle est la prochaine prédiction de billets vendus sur la liaison 100 ?", "Prédiction J+1 disponible pour ce modèle et cette liaison."),
+        ("Prédiction des billets vendus dans 7 jours", "Prédiction à l'horizon J+7 (modèle dédié), toutes liaisons."),
         ("Prédiction du taux de fraude à J+4", "Prédiction récursive à l'horizon J+4, calculée pour tous les modèles."),
+        ("Prédiction des billets contrôlés à 14h sur la liaison 100", "Prédiction J+1 filtrée sur l'heure et la liaison précisées (modèles horaires)."),
+    ],
+    "historique": [
+        ("Historique du taux de fraude", "Courbe réel vs prédiction sur tout l'historique disponible."),
+        ("Historique des billets vendus sur la liaison 100 ce mois", "Courbe réel vs prédiction sur les 30 derniers jours, pour cette liaison."),
+        ("Historique des billets contrôlés à 9h", "Courbe réel vs prédiction filtrée sur cette heure (modèles horaires)."),
     ],
     "explicabilite": [
         ("Quelles sont les variables les plus importantes pour le modèle fraude ?", "Classement des variables par importance SHAP, en graphique et en tableau."),
-        ("Variables importantes du modèle billets contrôlés à horizon J+7", "Importance des variables du modèle dédié à J+7."),
     ],
     "comparaison": [
         ("Compare le taux de fraude à l'année dernière", "Graphique de comparaison mensuelle entre années disponibles."),
         ("Montre la saisonnalité des billets vendus sur la liaison 100", "Décomposition tendance / saisonnalité pour cette liaison."),
         ("Calendrier des écarts du taux de contrôle", "Carte de chaleur des écarts prédiction-réel, jour par jour."),
-        ("Calendrier des écarts des billets vendus à J+15", "Carte de chaleur des écarts calculée sur le modèle dédié à J+15."),
     ],
     "pipeline": [
         ("Quel est le dernier traitement du pipeline ?", "Statut, date traitée, nombre de fichiers traités et liaisons inconnues du dernier dépôt quotidien."),
