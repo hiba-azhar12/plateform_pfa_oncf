@@ -17,6 +17,9 @@ QUESTIONS_REFERENCE = [
     "dernier traitement du pipeline",
     "liste des rapports generes",
     "generer un rapport",
+    "prediction des billets vendus a horizon j+7",
+    "performance du modele billets controles a j+15",
+    "prediction du taux de fraude dans 4 jours",
 ]
 
 
@@ -39,6 +42,7 @@ def repondre_texte_libre(message, session_state, liaisons_connues):
     contexte_session = module_contexte.obtenir_contexte(session_state)
     cle_modele = slots["cle_modele"] or contexte_session["dernier_modele"]
     liaison = slots["liaison"] or contexte_session["derniere_liaison"]
+    horizon = slots["horizon"] or contexte_session["dernier_horizon"]
     intention = slots["intention"]
     borne_debut, borne_fin = extraction.periode_vers_bornes(slots["periode"])
 
@@ -57,32 +61,36 @@ def repondre_texte_libre(message, session_state, liaisons_connues):
         suggestion = _suggestion_proche(texte_corrige)
         return reponses.reponse_repli(suggestion)
 
-    module_contexte.mettre_a_jour_contexte(session_state, cle_modele=cle_modele, liaison=liaison)
+    module_contexte.mettre_a_jour_contexte(session_state, cle_modele=cle_modele, liaison=liaison, horizon=horizon)
 
     if intention == "performance":
-        return _taguer(reponses.reponse_performance(cle_modele), "performance")
+        return _taguer(reponses.reponse_performance(cle_modele, horizon=horizon), "performance")
 
     if intention == "anomalies":
         return _taguer(
-            reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin),
+            reponses.reponse_anomalies(
+                cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon,
+            ),
             "anomalies",
         )
 
     if intention == "predictions":
         return _taguer(
-            reponses.reponse_predictions(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin),
+            reponses.reponse_predictions(
+                cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon,
+            ),
             "predictions",
         )
 
     if intention == "explicabilite":
-        return _taguer(reponses.reponse_explicabilite(cle_modele), "explicabilite")
+        return _taguer(reponses.reponse_explicabilite(cle_modele, horizon=horizon), "explicabilite")
 
     if intention == "comparaison":
         if "calendrier" in texte_corrige:
-            return _taguer(reponses.reponse_calendrier(cle_modele), "comparaison")
+            return _taguer(reponses.reponse_calendrier(cle_modele, horizon=horizon), "comparaison")
         if "saisonnalite" in texte_corrige or "saisonnier" in texte_corrige:
-            return _taguer(reponses.reponse_saisonnalite(cle_modele, liaison), "comparaison")
-        return _taguer(reponses.reponse_comparaison(cle_modele, liaison=liaison), "comparaison")
+            return _taguer(reponses.reponse_saisonnalite(cle_modele, liaison, horizon=horizon), "comparaison")
+        return _taguer(reponses.reponse_comparaison(cle_modele, liaison=liaison, horizon=horizon), "comparaison")
 
     suggestion = _suggestion_proche(texte_corrige)
     return reponses.reponse_repli(suggestion)

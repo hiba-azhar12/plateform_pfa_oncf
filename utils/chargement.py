@@ -45,12 +45,56 @@ def charger_json_horizon(cle_modele, horizon, cle_fichier):
         return json.load(fichier)
 
 
+@st.cache_data(show_spinner=False)
+def charger_csv_horizon(cle_modele, horizon, cle_fichier):
+    chemin = chemin_fichier_horizon(cle_modele, horizon, cle_fichier)
+    if not _existe(chemin):
+        return pd.DataFrame()
+    return pd.read_csv(chemin)
+
+
+@st.cache_data(show_spinner=False)
+def charger_parquet_horizon(cle_modele, horizon, cle_fichier):
+    chemin = chemin_fichier_horizon(cle_modele, horizon, cle_fichier)
+    if not _existe(chemin):
+        return pd.DataFrame()
+    return pd.read_parquet(chemin)
+
+
 def charger_metriques(cle_modele):
     return charger_json(cle_modele, "metriques") or {}
 
 
 def charger_metriques_horizon(cle_modele, horizon):
     return charger_json_horizon(cle_modele, horizon, "metriques") or {}
+
+
+def charger_anomalies_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "anomalies")
+
+
+def charger_importance_features_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "importance_features")
+
+
+def charger_importance_shap_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "importance_shap")
+
+
+def charger_saisonnalite_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "saisonnalite")
+
+
+def charger_calendrier_quotidien_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "calendrier_quotidien")
+
+
+def charger_comparaison_inter_annees_horizon(cle_modele, horizon):
+    return charger_csv_horizon(cle_modele, horizon, "comparaison_inter_annees")
+
+
+def charger_predictions_test_horizon(cle_modele, horizon):
+    return charger_parquet_horizon(cle_modele, horizon, "predictions_test")
 
 
 def charger_predictions(cle_modele):
@@ -305,6 +349,17 @@ def charger_historique_complet(cle_modele):
     if not _existe(chemin):
         return pd.DataFrame()
     return pd.read_parquet(chemin)
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def charger_historique_complet_type(cle_modele):
+    historique = charger_historique_complet(cle_modele)
+    if historique.empty:
+        return historique
+    historique = historique.copy()
+    historique["Date"] = pd.to_datetime(historique["Date"])
+    historique["LiaisonId"] = historique["LiaisonId"].astype(str)
+    return historique
 
 
 @st.cache_data(show_spinner=False, ttl=60)

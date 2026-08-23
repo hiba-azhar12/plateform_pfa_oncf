@@ -1,7 +1,18 @@
 import re
 from datetime import datetime, timedelta
 
-from config.chatbot import MOTS_CLES_INTENTION, MOTS_CLES_MODELE
+from config.chatbot import (
+    HORIZONS_CHATBOT_VALIDES,
+    MOTS_CLES_HORIZON_VERBAL,
+    MOTS_CLES_INTENTION,
+    MOTS_CLES_MODELE,
+)
+
+MOTIFS_HORIZON_NUMERIQUE = [
+    re.compile(r"j\s*\+\s*(\d{1,2})"),
+    re.compile(r"horizon\s+(?:j\s*\+\s*)?(\d{1,2})"),
+    re.compile(r"(?:dans|sur|a)\s+(\d{1,2})\s+jours?\b"),
+]
 
 MOTS_CLES_PERIODE = {
     "aujourd_hui": ["aujourd'hui", "aujourdhui", "ce jour"],
@@ -60,6 +71,20 @@ def detecter_comparaison(texte_normalise):
     return any(mot in texte_normalise for mot in MOTS_CLES_COMPARAISON)
 
 
+def detecter_horizon(texte_normalise):
+    for motif in MOTIFS_HORIZON_NUMERIQUE:
+        correspondance = motif.search(texte_normalise)
+        if correspondance:
+            valeur = int(correspondance.group(1))
+            if valeur in HORIZONS_CHATBOT_VALIDES:
+                return valeur
+    for horizon, mots in MOTS_CLES_HORIZON_VERBAL.items():
+        for mot in mots:
+            if mot in texte_normalise:
+                return horizon
+    return None
+
+
 def periode_vers_bornes(periode):
     if periode is None:
         return None, None
@@ -87,4 +112,5 @@ def extraire_slots(texte_normalise, liaisons_connues):
         "liaison": detecter_liaison(texte_normalise, liaisons_connues),
         "periode": detecter_periode(texte_normalise),
         "comparaison": detecter_comparaison(texte_normalise),
+        "horizon": detecter_horizon(texte_normalise),
     }

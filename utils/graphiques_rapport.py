@@ -58,6 +58,34 @@ def graphique_serie_temporelle(dates, reel, prediction, titre):
     return _finaliser(figure)
 
 
+def graphique_serie_reelle_prediction(dates, reel, prediction, titre):
+    figure, axe = plt.subplots(figsize=(7.4, 2.5))
+    axe.plot(dates, reel, color=PALETTE["navy"], linewidth=2, marker="o", markersize=3, label="Réel")
+    axe.plot(dates, prediction, color=PALETTE["orange"], linewidth=2, marker="o", markersize=3, label="Prédiction")
+    axe.legend(frameon=False, fontsize=8.5, loc="upper left")
+    axe.spines["top"].set_visible(False)
+    axe.spines["right"].set_visible(False)
+    axe.set_title(titre, fontsize=9.5, loc="left", color=PALETTE["text"], fontweight="bold")
+    axe.tick_params(labelsize=8)
+    figure.autofmt_xdate(rotation=25)
+    return _finaliser(figure)
+
+
+def graphique_previsions_multihorizon(dates, valeurs, titre):
+    figure, axe = plt.subplots(figsize=(7.4, 2.5))
+    axe.plot(
+        dates, valeurs, color=PALETTE["orange"], linewidth=2,
+        linestyle="--", marker="o", markersize=4, label="Prévision multi-horizon",
+    )
+    axe.legend(frameon=False, fontsize=8.5, loc="upper left")
+    axe.spines["top"].set_visible(False)
+    axe.spines["right"].set_visible(False)
+    axe.set_title(titre, fontsize=9.5, loc="left", color=PALETTE["text"], fontweight="bold")
+    axe.tick_params(labelsize=8)
+    figure.autofmt_xdate(rotation=25)
+    return _finaliser(figure)
+
+
 def graphique_repartition_categorie(categories, valeurs_reelles, valeurs_predites, titre):
     figure, axe = plt.subplots(figsize=(7.4, 2.6))
     positions = range(len(categories))

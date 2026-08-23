@@ -12,14 +12,16 @@ from utils.chargement import (
     charger_metriques,
     charger_predictions,
     charger_predictions_nouvelles,
+    charger_predictions_nouvelles_multi_horizon,
     charger_seuil_anomalie,
 )
 from utils.graphiques_rapport import (
     graphique_barres_wmape,
     graphique_comparaison_annuelle,
     graphique_histogramme,
+    graphique_previsions_multihorizon,
     graphique_repartition_categorie,
-    graphique_serie_temporelle,
+    graphique_serie_reelle_prediction,
 )
 from utils.liaisons import nom_liaison
 from utils.style import CHEMIN_LOGO_ONCF, CHEMIN_LOGO_TRAIN, PALETTE
@@ -225,25 +227,64 @@ def _volume_periode(cle_modele, jours=7):
     return recent["Reel"].sum()
 
 
-def _serie_agregee(cle_modele, jours=30):
+def _derniere_date_ancrage(cle_modele):
+    donnees = charger_predictions_nouvelles_multi_horizon(cle_modele)
+    if donnees.empty or "DateAncrage" not in donnees.columns:
+        return None
+    dates_ancrage = pd.to_datetime(donnees["DateAncrage"]).dropna()
+    if dates_ancrage.empty:
+        return None
+    return dates_ancrage.max()
+
+
+def _serie_reelle_semaine(cle_modele, jours=7):
     info = MODELES[cle_modele]
-    donnees = charger_predictions_nouvelles(cle_modele)
-    colonne_cible = "Reel"
-    if donnees.empty or donnees["Reel"].isna().all():
-        donnees = charger_predictions(cle_modele)
-        colonne_cible = info["cible"]
-    if donnees.empty:
-        return None
-    donnees = donnees.copy()
-    donnees["Date"] = pd.to_datetime(donnees["Date"])
-    limite = donnees["Date"].max() - timedelta(days=jours)
-    recent = donnees[donnees["Date"] >= limite]
     fonction = "sum" if info["famille"] == "comptages" else "mean"
-    agrege = recent.groupby("Date", as_index=False).agg({colonne_cible: fonction, "Prediction": fonction}).sort_values("Date")
-    agrege = agrege.dropna(subset=[colonne_cible])
-    if agrege.empty:
+
+    multi = charger_predictions_nouvelles_multi_horizon(cle_modele)
+    if multi.empty:
         return None
-    return agrege, colonne_cible
+
+    multi = multi.copy()
+    multi["Date"] = pd.to_datetime(multi["Date"])
+
+    historique_reel = multi[(multi["Horizon"] == 1) & multi["Reel"].notna()]
+    if historique_reel.empty:
+        return None
+
+    limite = historique_reel["Date"].max() - timedelta(days=jours)
+    historique_reel = historique_reel[historique_reel["Date"] >= limite]
+    if historique_reel.empty:
+        return None
+
+    serie_reelle = historique_reel.groupby("Date", as_index=False).agg(
+        Reel=("Reel", fonction), Prediction=("Prediction", fonction)
+    ).sort_values("Date")
+    return serie_reelle
+
+
+def _serie_prevision_dernier_jour(cle_modele):
+    info = MODELES[cle_modele]
+    fonction = "sum" if info["famille"] == "comptages" else "mean"
+
+    multi = charger_predictions_nouvelles_multi_horizon(cle_modele)
+    if multi.empty:
+        return None
+
+    multi = multi.copy()
+    multi["Date"] = pd.to_datetime(multi["Date"])
+    multi["DateAncrage"] = pd.to_datetime(multi["DateAncrage"])
+
+    date_ancrage = multi["DateAncrage"].max()
+    if pd.isna(date_ancrage):
+        return None
+
+    previsions = multi[multi["DateAncrage"] == date_ancrage]
+    serie_prevision = previsions.groupby("Date", as_index=False).agg(Prediction=("Prediction", fonction)).sort_values("Date")
+    if serie_prevision.empty:
+        return None
+
+    return serie_prevision, date_ancrage
 
 
 def _top_liaisons_ecart(cle_modele, n=5):
@@ -330,18 +371,30 @@ def _section_modele(document, cle_modele, accent="navy"):
             document.set_text_color(*_rgb(PALETTE["muted"]))
             document.cell(0, 6, "Aucune donnée de répartition disponible pour ce modèle.", ln=True)
     else:
-        resultat_serie = _serie_agregee(cle_modele)
-        if resultat_serie is not None:
-            agrege, colonne_cible = resultat_serie
-            chemin_graphe = graphique_serie_temporelle(
-                agrege["Date"], agrege[colonne_cible], agrege["Prediction"],
-                f"{info['libelle_court']} - Réel vs Prédiction (agrégé, toutes liaisons)",
+        serie_reelle = _serie_reelle_semaine(cle_modele)
+        if serie_reelle is not None:
+            chemin_graphe_reel = graphique_serie_reelle_prediction(
+                serie_reelle["Date"].tolist(), serie_reelle["Reel"].tolist(), serie_reelle["Prediction"].tolist(),
+                f"{info['libelle_court']} - Réel vs Prédiction de la semaine",
             )
-            document.inserer_image(chemin_graphe)
+            document.inserer_image(chemin_graphe_reel)
         else:
             document.set_font("Helvetica", "", 9)
             document.set_text_color(*_rgb(PALETTE["muted"]))
-            document.cell(0, 6, "Aucune série récente disponible pour ce modèle.", ln=True)
+            document.cell(0, 6, "Aucune valeur réelle récente disponible pour ce modèle.", ln=True)
+
+        resultat_prevision = _serie_prevision_dernier_jour(cle_modele)
+        if resultat_prevision is not None:
+            serie_prevision, date_ancrage = resultat_prevision
+            chemin_graphe_prevision = graphique_previsions_multihorizon(
+                serie_prevision["Date"].tolist(), serie_prevision["Prediction"].tolist(),
+                f"{info['libelle_court']} - Prévision multi-horizon depuis le {date_ancrage.strftime('%d/%m/%Y')}",
+            )
+            document.inserer_image(chemin_graphe_prevision)
+        else:
+            document.set_font("Helvetica", "", 9)
+            document.set_text_color(*_rgb(PALETTE["muted"]))
+            document.cell(0, 6, "Aucune prévision multi-horizon disponible pour ce modèle.", ln=True)
 
     top_liaisons = _top_liaisons_ecart(cle_modele)
     if not top_liaisons.empty:
@@ -366,8 +419,9 @@ def _section_modele(document, cle_modele, accent="navy"):
 def generer_rapport_hebdomadaire():
     os.makedirs(RAPPORTS, exist_ok=True)
 
-    date_limite = datetime.now() - timedelta(days=7)
-    periode_texte = f"{date_limite.strftime('%d/%m/%Y')} - {datetime.now().strftime('%d/%m/%Y')}"
+    date_reference = _derniere_date_ancrage("modele1_ventes") or pd.Timestamp(datetime.now())
+    date_limite = date_reference - timedelta(days=7)
+    periode_texte = f"{date_limite.strftime('%d/%m/%Y')} - {date_reference.strftime('%d/%m/%Y')}"
 
     document = RapportONCF()
     document.page_de_couverture(periode_texte)

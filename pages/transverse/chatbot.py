@@ -4,13 +4,14 @@ import streamlit as st
 
 from config.chatbot import (
     CATEGORIES,
+    LIBELLES_HORIZON,
     OPTION_LIAISON_PRECISE,
     OPTION_TOUTES_LIAISONS_CHATBOT,
     OPTIONS_PERIODE,
     ORDRE_CATEGORIES,
     SUGGESTIONS_CONTEXTUELLES,
 )
-from config.modeles import MODELES
+from config.modeles import MODELES, horizons_disponibles
 from utils.chargement import liste_liaisons
 from utils.chatbot import contexte as module_contexte
 from utils.chatbot import moteur, reponses
@@ -71,37 +72,52 @@ def _ajouter_message(role, contenu):
     st.session_state["chat_historique"].append((role, contenu))
 
 
-def _traiter_categorie_sans_modele(cle_categorie):
-    if cle_categorie == "pipeline":
-        return reponses.reponse_pipeline(), "Quel est le dernier traitement du pipeline ?"
-    return reponses.reponse_liste_rapports(), "Quels rapports ont déjà été générés ?"
+def _poser_question_guidee(libelle_question, message_attente, fonction_reponse, cle_categorie, cle_modele=None, liaison=None, horizon=None):
+    """Affiche immediatement la question et une bulle assistant avec un
+    indicateur de chargement, calcule la reponse pendant que le spinner
+    tourne, puis l'affiche des qu'elle est prete."""
+    with st.chat_message("user"):
+        st.write(libelle_question)
+    with st.chat_message("assistant"):
+        with st.spinner(message_attente):
+            reponse_prete = fonction_reponse()
+        reponse_prete["categorie"] = cle_categorie
+        _afficher_reponse(reponse_prete)
+
+    _ajouter_message("user", libelle_question)
+    _ajouter_message("assistant", reponse_prete)
+    module_contexte.mettre_a_jour_contexte(st.session_state, cle_modele=cle_modele, liaison=liaison, horizon=horizon)
+    st.session_state["chat_navigation"] = {"categorie": None, "modele": None}
+    st.rerun()
 
 
-def _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type):
+def _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon):
     if cle_categorie == "performance":
-        return reponses.reponse_performance(cle_modele)
+        return reponses.reponse_performance(cle_modele, horizon=horizon)
     if cle_categorie == "anomalies":
-        return reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin)
+        return reponses.reponse_anomalies(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon)
     if cle_categorie == "predictions":
-        return reponses.reponse_predictions(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin)
+        return reponses.reponse_predictions(cle_modele, liaison=liaison, borne_debut=borne_debut, borne_fin=borne_fin, horizon=horizon)
     if cle_categorie == "explicabilite":
-        return reponses.reponse_explicabilite(cle_modele)
+        return reponses.reponse_explicabilite(cle_modele, horizon=horizon)
     if cle_categorie == "comparaison":
         if sous_type == "saisonnalite":
-            return reponses.reponse_saisonnalite(cle_modele, liaison)
+            return reponses.reponse_saisonnalite(cle_modele, liaison, horizon=horizon)
         if sous_type == "calendrier":
-            return reponses.reponse_calendrier(cle_modele)
-        return reponses.reponse_comparaison(cle_modele, liaison=liaison)
+            return reponses.reponse_calendrier(cle_modele, horizon=horizon)
+        return reponses.reponse_comparaison(cle_modele, liaison=liaison, horizon=horizon)
     return reponses.reponse_repli()
 
 
-def _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle):
+def _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon=None):
     libelle_modele = MODELES[cle_modele]["libelle"] if cle_modele else ""
     question = f"{CATEGORIES[cle_categorie]['libelle']} — {libelle_modele}" if libelle_modele else CATEGORIES[cle_categorie]["libelle"]
     if liaison:
         question += f" — liaison {liaison}"
     if periode_libelle:
         question += f" — {periode_libelle}"
+    if horizon and horizon != 1:
+        question += f" — J+{horizon}"
     return question
 
 
@@ -132,14 +148,31 @@ with st.container(border=True, key="parcours_guide"):
         info_categorie = CATEGORIES[cle_categorie]
 
         if not info_categorie["necessite_modele"]:
-            reponse_prete, libelle_question = _traiter_categorie_sans_modele(cle_categorie)
-            if st.button("Poser cette question", key=f"poser_{cle_categorie}"):
-                reponse_prete["categorie"] = cle_categorie
-                _ajouter_message("user", libelle_question)
-                _ajouter_message("assistant", reponse_prete)
-                module_contexte.obtenir_contexte(st.session_state)
-                st.session_state["chat_navigation"] = {"categorie": None, "modele": None}
-                st.rerun()
+            if cle_categorie == "rapports":
+                st.caption("Consultez les rapports déjà générés ou lancez la génération d'un nouveau rapport hebdomadaire.")
+                colonne_liste, colonne_generation = st.columns(2)
+                with colonne_liste:
+                    lancer_liste = st.button("Voir les rapports disponibles", key="poser_rapports_liste", use_container_width=True)
+                with colonne_generation:
+                    lancer_generation = st.button("Générer un nouveau rapport", key="poser_rapports_generation", use_container_width=True, type="primary")
+
+                if lancer_liste:
+                    _poser_question_guidee(
+                        "Quels rapports ont déjà été générés ?", "Recherche des rapports disponibles…",
+                        reponses.reponse_liste_rapports, cle_categorie,
+                    )
+                if lancer_generation:
+                    _poser_question_guidee(
+                        "Génère un rapport", "Génération du rapport hebdomadaire en cours, cela peut prendre quelques instants…",
+                        reponses.reponse_generer_rapport, cle_categorie,
+                    )
+            else:
+                libelle_question = "Quel est le dernier traitement du pipeline ?"
+                if st.button("Poser cette question", key=f"poser_{cle_categorie}"):
+                    _poser_question_guidee(
+                        libelle_question, "Consultation du journal d'exécution…",
+                        reponses.reponse_pipeline, cle_categorie,
+                    )
         else:
             cles_modeles = list(MODELES.keys())
             colonnes_modeles = st.columns(len(cles_modeles))
@@ -160,6 +193,7 @@ with st.container(border=True, key="parcours_guide"):
                 borne_debut = borne_fin = None
                 periode_libelle = None
                 sous_type = "comparaison"
+                horizon = 1
 
                 if info_categorie["necessite_liaison"]:
                     choix_liaison = st.radio(
@@ -204,15 +238,26 @@ with st.container(border=True, key="parcours_guide"):
                         borne_fin = aujourd_hui
                         periode_libelle = choix_periode
 
+                if info_categorie.get("necessite_horizon"):
+                    horizons_options = horizons_disponibles(cle_modele)
+                    horizon = st.radio(
+                        "Horizon de prédiction", horizons_options,
+                        format_func=lambda h: LIBELLES_HORIZON.get(h, f"J+{h}"),
+                        key=f"choix_horizon_{cle_categorie}_{cle_modele}", horizontal=True,
+                    )
+                    if len(horizons_options) <= 6:
+                        st.caption(
+                            "Les horizons dédiés J+7, J+15 et J+30 ne sont disponibles que pour les modèles "
+                            "Billets vendus et Billets contrôlés."
+                        )
+
                 if st.button("Poser cette question", key=f"poser_{cle_categorie}_{cle_modele}"):
-                    reponse_prete = _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type)
-                    reponse_prete["categorie"] = cle_categorie
-                    libelle_question = _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle)
-                    _ajouter_message("user", libelle_question)
-                    _ajouter_message("assistant", reponse_prete)
-                    module_contexte.mettre_a_jour_contexte(st.session_state, cle_modele=cle_modele, liaison=liaison)
-                    st.session_state["chat_navigation"] = {"categorie": None, "modele": None}
-                    st.rerun()
+                    libelle_question = _libelle_question(cle_categorie, cle_modele, liaison, periode_libelle, horizon)
+                    _poser_question_guidee(
+                        libelle_question, "Analyse des données en cours…",
+                        lambda: _traiter_selection(cle_categorie, cle_modele, liaison, borne_debut, borne_fin, sous_type, horizon),
+                        cle_categorie, cle_modele=cle_modele, liaison=liaison, horizon=horizon,
+                    )
 
 if st.session_state["chat_historique"] and st.session_state["chat_navigation"]["categorie"] is None:
     dernier_role, dernier_contenu = st.session_state["chat_historique"][-1]
@@ -237,8 +282,10 @@ if message:
     with st.chat_message("user"):
         st.write(message)
 
-    reponse = moteur.repondre_texte_libre(message, st.session_state, liaisons_connues)
-    _ajouter_message("assistant", reponse)
     with st.chat_message("assistant"):
+        with st.spinner("Analyse de votre question en cours…"):
+            reponse = moteur.repondre_texte_libre(message, st.session_state, liaisons_connues)
         _afficher_reponse(reponse)
+
+    _ajouter_message("assistant", reponse)
     st.rerun()

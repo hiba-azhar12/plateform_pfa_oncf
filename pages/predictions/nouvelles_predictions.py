@@ -4,7 +4,7 @@ import streamlit as st
 
 from config.modeles import MODELES, horizons_disponibles
 from utils.chargement import (
-    charger_historique_complet,
+    charger_historique_complet_type,
     charger_predictions_nouvelles_multi_horizon,
     dernier_log_execution,
     liaisons_ordonnees_nouvelles_predictions,
@@ -242,11 +242,7 @@ for onglet, cle_modele in zip(onglets, MODELES.keys()):
         st.markdown("**Comparaison avec les valeurs réelles passées**")
         st.caption(f"Référence : prédiction J+{horizon_selectionne} du {date_prediction.strftime('%d/%m/%Y')}")
 
-        historique = charger_historique_complet(cle_modele)
-        if not historique.empty:
-            historique = historique.copy()
-            historique["Date"] = pd.to_datetime(historique["Date"])
-            historique["LiaisonId"] = historique["LiaisonId"].astype(str)
+        historique = charger_historique_complet_type(cle_modele)
 
         colonne_valeur = info["cible"]
         filtres_tendance = dict(

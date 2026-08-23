@@ -167,6 +167,7 @@ MODELES_HORIZON_DEDIE = ["modele1_ventes", "modele3_controles"]
 FICHIERS_HORIZON_COMMUNS = {
     "metriques": "metriques.json",
     "seuil_anomalie": "seuil_anomalie.json",
+    "anomalies": "anomalies.csv",
     "importance_features": "importance_features.csv",
     "importance_shap": "importance_shap.csv",
     "colonnes_features": "colonnes_features.json",
@@ -205,6 +206,10 @@ def methode_horizon(cle_modele, horizon):
     if cle_modele in MODELES_HORIZON_DEDIE and horizon in HORIZONS_DEDIES:
         return "dedie"
     raise ValueError(f"horizon {horizon} indisponible pour {cle_modele}")
+
+
+def horizon_est_dedie(cle_modele, horizon):
+    return cle_modele in MODELES_HORIZON_DEDIE and horizon in HORIZONS_DEDIES
 
 
 def dossier_horizon(cle_modele, horizon):
