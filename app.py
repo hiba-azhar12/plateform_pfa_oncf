@@ -1,6 +1,22 @@
+from urllib.parse import urlparse
+
 import streamlit as st
 
 from utils.style import appliquer_style, logo_pda_sidebar
+
+
+def _est_page_accueil():
+    """Determine si l'URL demandee correspond a la page d'accueil, avant
+    meme de construire la navigation, pour ne jamais generer le menu complet
+    dans ce cas (plutot que de le generer puis tenter de le cacher, ce qui
+    laissait un flash visible)."""
+    try:
+        chemin = urlparse(st.context.url).path.rstrip("/")
+    except Exception:
+        return True
+    dernier_segment = chemin.rsplit("/", 1)[-1]
+    return dernier_segment in ("", "accueil")
+
 
 st.set_page_config(
     page_title="Plateforme ONCF - Performance Commerciale",
@@ -10,8 +26,9 @@ st.set_page_config(
 
 appliquer_style()
 
-pages_predictions = [
-    st.Page("pages/accueil.py", title="Accueil", url_path="accueil", default=True),
+page_accueil = st.Page("pages/accueil.py", title="Accueil", url_path="accueil", default=True)
+
+pages_predictions_visibles = [
     st.Page("pages/predictions/nouvelles_predictions.py", title="Nouvelles Prédictions"),
 ]
 
@@ -35,13 +52,33 @@ pages_transverse = [
     st.Page("pages/transverse/administration.py", title="Administration"),
 ]
 
-navigation = st.navigation({
-    "Prédictions": pages_predictions,
-    "Ventes": pages_ventes,
-    "Contrôles": pages_controles,
-    "Analyse transverse": pages_transverse,
-})
+accueil_detectee = _est_page_accueil()
 
-logo_pda_sidebar()
+if accueil_detectee:
+    # Toutes les pages restent enregistrees (necessaire pour que
+    # st.switch_page fonctionne depuis l'accueil), mais aucun menu n'est
+    # construit (position="hidden") : rien a cacher, donc pas de flash.
+    navigation = st.navigation(
+        {
+            "Prédictions": [page_accueil] + pages_predictions_visibles,
+            "Ventes": pages_ventes,
+            "Contrôles": pages_controles,
+            "Analyse transverse": pages_transverse,
+        },
+        position="hidden",
+    )
+else:
+    # "Accueil" n'est volontairement pas inclus dans la liste affichee ici :
+    # on y accede via l'URL racine ou le logo, pas via le menu.
+    navigation = st.navigation(
+        {
+            "Prédictions": pages_predictions_visibles,
+            "Ventes": pages_ventes,
+            "Contrôles": pages_controles,
+            "Analyse transverse": pages_transverse,
+        },
+        position="sidebar",
+    )
+    logo_pda_sidebar()
 
 navigation.run()
