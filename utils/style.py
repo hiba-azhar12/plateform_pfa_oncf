@@ -392,8 +392,8 @@ def appliquer_style():
             background-color: #FFFFFF !important;
         }}
 
-        .st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection div[data-testid="stDateInput"] *:not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]),
-        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] *:not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]) {{
+        .st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection.st-key-panneau_selection div[data-testid="stDateInput"] *:not([data-testid="stWidgetLabel"]):not([data-testid="stWidgetLabel"] *):not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]),
+        div[class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"][class*="st-key-panneau_selection"] div[data-testid="stDateInput"] *:not([data-testid="stWidgetLabel"]):not([data-testid="stWidgetLabel"] *):not([data-focused="true"]):not([aria-selected="true"]):not([data-selected="true"]):not([data-state="focused"]) {{
             color: {PALETTE["text"]} !important;
             -webkit-text-fill-color: {PALETTE["text"]} !important;
         }}

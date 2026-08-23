@@ -54,7 +54,7 @@ PARAMETRES_LIGHTGBM_BASE = dict(
 PARAMETRES_CATBOOST_BASE = dict(
     iterations=1000, learning_rate=0.05, depth=8, l2_leaf_reg=3.0,
     random_seed=42, early_stopping_rounds=30, verbose=False,
-    used_ram_limit="3gb",
+    used_ram_limit="6gb",
 )
 
 SPECIFICATIONS = {

@@ -3756,5 +3756,193 @@
     "statut": "echec",
     "erreur": "historique_insuffisant",
     "id_declenchement": "00cdbe2a-3636-4d41-bda7-9449e4315736"
+  },
+  {
+    "horodatage": "2026-08-23 19:17:46",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 23.734623658433943,
+      "MAE": 2.2295854888675635,
+      "MedAE": 0.05050678903569123,
+      "WMAPE": 1.2055361204128112,
+      "NbLignesValidation": 2089237,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-21 13:07:11",
+      "NbLignesEntrainement": 10470085
+    },
+    "metriques_apres": {
+      "RMSE": 23.830015668411562,
+      "MAE": 2.2467877517523944,
+      "MedAE": 0.08045350605475497,
+      "WMAPE": 1.205840183846223,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 19:17:46",
+      "NbLignesEntrainement": 10506941
+    },
+    "rmse_ancien_meme_periode": 24.166715733098023,
+    "id_declenchement": "e3ccb83a-5ccb-4e25-97b3-4af1cff786b3"
+  },
+  {
+    "horodatage": "2026-08-23 19:25:26",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": 15,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbControles",
+      "Horizon": 15,
+      "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1 - J+15",
+      "RMSE": 25.0176427086482,
+      "MAE": 2.3402147763829215,
+      "MAPE": 78.40251250232393,
+      "WMAPE": 131.84221016715833,
+      "NbLignesTest": 2073562
+    },
+    "metriques_apres": {
+      "RMSE": 24.84231412441802,
+      "MAE": 2.392617096321439,
+      "MedAE": 0.09886065776223249,
+      "WMAPE": 1.2388307958115532,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Horizon": 15,
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE - J+15",
+      "DateReentrainement": "2026-08-23 19:25:26",
+      "NbLignesEntrainement": 10030313
+    },
+    "rmse_ancien_meme_periode": 25.162366214793785,
+    "id_declenchement": "aca480e4-ba80-489a-b04a-4e5aa7d6c2e6"
+  },
+  {
+    "horodatage": "2026-08-23 19:31:28",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": 30,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbControles",
+      "Horizon": 30,
+      "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1 - J+30",
+      "RMSE": 25.343763784828898,
+      "MAE": 2.3126428263023233,
+      "MAPE": 81.63593768010769,
+      "WMAPE": 129.02824791944326,
+      "NbLignesTest": 2053359
+    },
+    "metriques_apres": {
+      "RMSE": 24.558358593369825,
+      "MAE": 2.373049110612533,
+      "MedAE": 0.11185335475302843,
+      "WMAPE": 1.2298809328930798,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Horizon": 30,
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE - J+30",
+      "DateReentrainement": "2026-08-23 19:31:28",
+      "NbLignesEntrainement": 9557188
+    },
+    "rmse_ancien_meme_periode": 25.914560069335916,
+    "id_declenchement": "8b4d333f-2196-4dd3-973e-7c587b70d89e"
+  },
+  {
+    "horodatage": "2026-08-23 19:38:47",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": 7,
+    "statut": "deploye",
+    "metriques_avant": {
+      "Cible": "NbControles",
+      "Horizon": 7,
+      "Modele": "MODELE 3 CONTROLES - LIGHTGBM TWEEDIE 1.1 - J+7",
+      "RMSE": 24.986920039487774,
+      "MAE": 2.307574289915786,
+      "MAPE": 77.8151113889756,
+      "WMAPE": 130.59736256017084,
+      "NbLignesTest": 2083110
+    },
+    "metriques_apres": {
+      "RMSE": 25.563286305095488,
+      "MAE": 2.406080377374459,
+      "MedAE": 0.12223208353495336,
+      "WMAPE": 1.2659310082095772,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Horizon": 7,
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-23 19:38:47",
+      "NbLignesEntrainement": 10286555
+    },
+    "rmse_ancien_meme_periode": 25.608114727749992,
+    "id_declenchement": "4cf2a07e-26e1-4297-8339-5d55cfe3aa6c"
+  },
+  {
+    "horodatage": "2026-08-23 19:44:34",
+    "type": "reentrainement",
+    "cle_modele": "modele3_controles",
+    "horizon": null,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 23.830015668411562,
+      "MAE": 2.2467877517523944,
+      "MedAE": 0.08045350605475497,
+      "WMAPE": 1.205840183846223,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 19:17:46",
+      "NbLignesEntrainement": 10506941
+    },
+    "metriques_apres": {
+      "RMSE": 23.830015668411562,
+      "MAE": 2.2467877517523944,
+      "MedAE": 0.08045350605475497,
+      "WMAPE": 1.205840183846223,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbControles",
+      "Modele": "BILLETS CONTR\u00d4L\u00c9S - REENTRAINEMENT AUTOMATIQUE",
+      "DateReentrainement": "2026-08-23 19:44:34",
+      "NbLignesEntrainement": 10506941
+    },
+    "rmse_ancien_meme_periode": 24.148779477664934,
+    "id_declenchement": "43ccd26b-f246-4543-b8c8-af28f5af515b"
+  },
+  {
+    "horodatage": "2026-08-23 19:51:25",
+    "type": "reentrainement",
+    "cle_modele": "modele1_ventes",
+    "horizon": 7,
+    "statut": "deploye",
+    "metriques_avant": {
+      "RMSE": 6.654966054172427,
+      "MAE": 1.188452255971593,
+      "MedAE": 0.2610327979539462,
+      "WMAPE": 0.7012179651008904,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-22 23:17:44",
+      "NbLignesEntrainement": 5000000
+    },
+    "metriques_apres": {
+      "RMSE": 6.654966054172427,
+      "MAE": 1.188452255971593,
+      "MedAE": 0.2610327979539462,
+      "WMAPE": 0.7012179651008904,
+      "NbLignesValidation": 1000000,
+      "Cible": "NbBillets",
+      "Horizon": 7,
+      "Modele": "BILLETS VENDUS - REENTRAINEMENT AUTOMATIQUE - J+7",
+      "DateReentrainement": "2026-08-23 19:51:25",
+      "NbLignesEntrainement": 5000000
+    },
+    "rmse_ancien_meme_periode": 6.654966054172427,
+    "id_declenchement": "2218e876-1242-411c-998e-db4dd02ad743"
   }
 ]
