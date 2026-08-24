@@ -28,7 +28,8 @@ appliquer_style()
 
 page_accueil = st.Page("pages/accueil.py", title="Accueil", url_path="accueil", default=True)
 
-pages_predictions_visibles = [
+pages_predictions = [
+    page_accueil,
     st.Page("pages/predictions/nouvelles_predictions.py", title="Nouvelles Prédictions"),
 ]
 
@@ -53,32 +54,19 @@ pages_transverse = [
 ]
 
 accueil_detectee = _est_page_accueil()
+print(f"[app.py] st.context.url={st.context.url!r} accueil_detectee={accueil_detectee}")
 
-if accueil_detectee:
-    # Toutes les pages restent enregistrees (necessaire pour que
-    # st.switch_page fonctionne depuis l'accueil), mais aucun menu n'est
-    # construit (position="hidden") : rien a cacher, donc pas de flash.
-    navigation = st.navigation(
-        {
-            "Prédictions": [page_accueil] + pages_predictions_visibles,
-            "Ventes": pages_ventes,
-            "Contrôles": pages_controles,
-            "Analyse transverse": pages_transverse,
-        },
-        position="hidden",
-    )
-else:
-    # "Accueil" n'est volontairement pas inclus dans la liste affichee ici :
-    # on y accede via l'URL racine ou le logo, pas via le menu.
-    navigation = st.navigation(
-        {
-            "Prédictions": pages_predictions_visibles,
-            "Ventes": pages_ventes,
-            "Contrôles": pages_controles,
-            "Analyse transverse": pages_transverse,
-        },
-        position="sidebar",
-    )
+navigation = st.navigation(
+    {
+        "Prédictions": pages_predictions,
+        "Ventes": pages_ventes,
+        "Contrôles": pages_controles,
+        "Analyse transverse": pages_transverse,
+    },
+    position="hidden" if accueil_detectee else "sidebar",
+)
+
+if not accueil_detectee:
     logo_pda_sidebar()
 
 navigation.run()
