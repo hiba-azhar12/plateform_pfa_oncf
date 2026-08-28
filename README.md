@@ -43,6 +43,7 @@ streamlit run app.py
 ### API (Terminal 2)
 
 ```
+source .venv/bin/activate
 chmod +x scripts/lancer_api.sh
 ./scripts/lancer_api.sh
 ```

@@ -6,10 +6,7 @@ from utils.style import appliquer_style, logo_pda_sidebar
 
 
 def _est_page_accueil():
-    """Determine si l'URL demandee correspond a la page d'accueil, avant
-    meme de construire la navigation, pour ne jamais generer le menu complet
-    dans ce cas (plutot que de le generer puis tenter de le cacher, ce qui
-    laissait un flash visible)."""
+
     try:
         chemin = urlparse(st.context.url).path.rstrip("/")
     except Exception:
